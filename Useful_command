@@ -1,0 +1,17 @@
+1/wget from google driver.
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=1UoJhTtjHNByZSm96W3yFTfU5upJnsKiS' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=1UoJhTtjHNByZSm96W3yFTfU5upJnsKiS" -O pose_hrnet_w48_384x288.pth
+#change three place.
+rm -rf /tmp/cookies.txt
+#after use.
+
+2/scp
+正向：
+scp /user/e/e0509845/test.png e0509845@xgpf10:/tmp/tzw/simple-HRNet/samples
+反向backup：
+scp * e0509845@sunfire0:/user/e/e0509845
+
+从本地文件复制整个文件夹到远程主机上
+scp -v -r /user/e/e0509845/samples e0509845@xgpf10:/tmp/tzw/simple-HRNet
+
+从远程主机复制整个文件夹到本地目录下
+scp -r e0509845@xgpf10:/tmp/tzw/simple-HRNet/output /user/e/e0509845/

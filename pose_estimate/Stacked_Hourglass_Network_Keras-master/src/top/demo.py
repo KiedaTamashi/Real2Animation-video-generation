@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, "../data_gen/")
 sys.path.insert(0, "../net/")
 sys.path.insert(0, "../eval/")
-
+# import tensorflow as tf
 import os
 import numpy as np
 import pandas as pd
@@ -35,11 +35,12 @@ def main_inference(model_json, model_weights, num_stack, num_class, imgfile, con
 
     xnet.load_model(model_json, model_weights)
 
+    # for ifile in os.listdir(imgdsk):
+    # imgfile = os.path.join(imgdsk,ifile)
     out, scale = xnet.inference_file(imgfile)
-    np.save("../../outcomes/heat_maps.npy",np.array(out[0]))
+    np.save("../../outcomes/maps_{}.npy".format(imgfile.split("/"[-1])),np.array(out[0]))
     #scipy.misc.imsave("out.jpg",out[0][:,:,0]) #if we want the heat map visilization.
     kps = post_process_heatmap(out[0, :, :, :])
-
     ignore_kps = ['plevis', 'thorax', 'head_top']
     kp_keys = MPIIDataGen.get_kp_keys()
     mkps = list()
@@ -51,16 +52,16 @@ def main_inference(model_json, model_weights, num_stack, num_class, imgfile, con
         mkps.append((_kp[0] * scale[1] * 4, _kp[1] * scale[0] * 4, _conf))
 
     df_kps = pd.DataFrame(mkps)
-    df_kps.to_csv("../../outcomes/demo_kps.csv",header=False,index=None)
-
+    df_kps.to_csv("../../outcomes/kps_{}.csv".format(imgfile.split("/"[-1])),header=False,index=None)
+    #from here to get image.
     cvmat = render_joints(cv2.imread(imgfile), mkps, confth)
-    cv2.imwrite("../../outcomes/demo_out.jpg",cvmat)
-    cv2.imshow('frame', cvmat)
-    cv2.waitKey()
+    cv2.imwrite("../../outcomes/out_{}.jpg".format(imgfile.split("/"[-1])),cvmat)
+    # cv2.imshow('frame', cvmat)
+    # cv2.waitKey()
 
 
 if __name__ == "__main__":
-    test_input = r"../../images/sample.jpg"
+    test_input = r"../../images/samples/timg4.jpg"
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpuID", default=0, type=int, help='gpu id')
