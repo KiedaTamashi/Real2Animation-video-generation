@@ -1,5 +1,33 @@
-1/今天基本算是搭好了。有一个问题是为什么只能同时连一个server。切换都不行。明天问一下。
+1/有些server被block了，连不上。最大的问题还是GPU一直busy根本轮不到我用
 
-2/HRNet simple可以跑了。但不知道为什么结果很灾难。可能性有三种：我下的模型不对，用法不对，代码错误。明天排查一下
+2/it can be sure that the terrible results of anime pose estimation is caused by the trained model.
+It has never seen the anime-fashion images so make a bad estimation. The background is always "dirty" so the detector make mistakes about it
+So if we want to make pose estimation on anime characters. There may be two ways:
+1) use anime figures with a face/body-front shot, no special motion, human-like characters.
+2) fine-tune on the pretrained model with anime characters. It seems there are some datasets.
 
-3/Blender 看一下是什么一个使用模式。
+目前的检查情况。
+x - bad  ✔ ok  * influence
+- 比例夸张 x
+- hair/cloths *
+- 三头身 部分可以
+- 正面写实 ✔
+- 从下往上+衣服 x
+- 风格化（素描等） x
+直接套用的话，基本上只能使用偏写实风的。
+比例基本必须要是正确的，透视什么的不太行。只要比例正确，人形，平视，就有比较高的概率得到好的结果。
+混叠的基本上一个点也检测不出来，标注很容易被衣服误导。而我的anime的图片一般都比较花，实际上标注难度算是比较高的了。一些构图简单、风格寻常的，标注还行。
+
+3/Blender 是可以3D -> 2D的，我也找到了一些useful free 3D model
+tutorial: https://www.youtube.com/watch?v=vIKJ1AqfI0Q
+models: https://sketchfab.com/search?features=downloadable&q=anime&sort_by=-pertinence&type=models
+
+4/I have emailed the author of anime-pose-estiamtion for dataset. good luck!
+
+5/style transfer后虽然没有太大改变，都是却影响了performance
+
+Next:
+1/Blender learning
+2/try to downloading anime-painting datasets.
+3/strange ROM problem. with torch.no_grads() solve the validation.
+                        https://zhuanlan.zhihu.com/p/97161767 this may fix.
