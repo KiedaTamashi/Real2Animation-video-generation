@@ -56,7 +56,7 @@ def main_inference(model_json, model_weights, num_stack, num_class, imgfile, con
     #from here to get image.
     cvmat = render_joints(cv2.imread(imgfile), mkps, confth)
     cv2.imwrite("../../outcomes/out_{}.jpg".format(imgfile.split("/"[-1])),cvmat)
-    # cv2.imshow('frame', cvmat)
+    #cv2.imshow('frame', cvmat)
     # cv2.waitKey()
 
 

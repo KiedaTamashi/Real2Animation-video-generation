@@ -26,8 +26,10 @@ models: https://sketchfab.com/search?features=downloadable&q=anime&sort_by=-pert
 
 5/style transfer后虽然没有太大改变，都是却影响了performance
 
+6/find pose datasets. 2000 images. but the crawler is dead.
+
 Next:
-1/Blender learning
-2/try to downloading anime-painting datasets.
+1/Blender learning ->start from zero
+2/anime-painting datasets works. but need new crawler
 3/strange ROM problem. with torch.no_grads() solve the validation.
                         https://zhuanlan.zhihu.com/p/97161767 this may fix.
