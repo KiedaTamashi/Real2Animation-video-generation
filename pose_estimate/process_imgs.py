@@ -4,6 +4,9 @@ import json
 import pandas as pd
 import cv2
 import copy
+import math
+from shutil import copyfile
+import random
 
 #E:\PycharmProject\data
 def show_points(imgfile,kps,confth=0.1):
@@ -125,5 +128,35 @@ def data_augmentation_file(json_in, json_out, ops = ("fliph","flipv","rot_180","
     data_out +=data_ori
     write_json(json_out,data_out)
 
-data_augmentation_file(r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\all_data.json",
-                       r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\all_data_aug.json")
+def Json2LipCSV(jsonfile,out_name="anime"):
+    data_ori = load_json(jsonfile)
+    train_data = list()
+    val_data = list()
+    train_len = math.floor(len(data_ori)*0.9)
+    # val_len = len(data_ori)-train_len
+    random.shuffle(data_ori)
+    for idx,data in enumerate(data_ori):
+        tmp = list()
+        tmp.append(data["file_name"].split("/")[-1])
+        for key,value in data["points"].items():
+            tmp+=[int(x) for x in value]
+            tmp.append(0)
+        if idx<train_len:
+            train_data.append(tmp)
+        else:
+            val_data.append(tmp)
+    pd.DataFrame(train_data).to_csv(out_name+"_train_set.csv",header=None,index=None)
+    pd.DataFrame(val_data).to_csv(out_name+"_val_set.csv",header=None,index=None)
+
+def divideDataset(csvfile,source_dir,target_dir):
+    df = pd.read_csv(csvfile,header=None)
+    length = len(df)
+    for i in range(length):
+        file_name = df.iloc[i][0]
+        copyfile(os.path.join(source_dir,file_name),os.path.join(target_dir,file_name))
+
+# Json2LipCSV("./all_data_aug.json")
+# divideDataset("./anime_val_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\val_images")
+divideDataset("./anime_train_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\train_images")
+# data_augmentation_file(r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\all_data.json",
+#                        r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\all_data_aug.json")
