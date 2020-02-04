@@ -1,10 +1,9 @@
 1/wget from google driver.
-wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=12fKg8LFOsudQLWnP3PMg9tvT-alsxAF_' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=12fKg8LFOsudQLWnP3PMg9tvT-alsxAF_" -O code.zip
+wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate 'https://docs.google.com/uc?export=download&id=197CWR_aOAd4vNflhWlxWmRVsAmeG5S1F' -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')&id=197CWR_aOAd4vNflhWlxWmRVsAmeG5S1F" -O code.zip
 #change three place.
 rm -rf /tmp/cookies.txt
 #after use.
 
-https://drive.google.com/open?id=12fKg8LFOsudQLWnP3PMg9tvT-alsxAF_
 
 
 2/scp
@@ -17,4 +16,4 @@ scp * e0509845@sunfire0:/user/e/e0509845
 scp -v -r /user/e/e0509845/pose_estimation e0509845@xgpf10:/tmp/tzw/
 
 从远程主机复制整个文件夹到本地目录下
-scp -r e0509845@xgpf10:/tmp/tzw/simple-HRNet/output /user/e/e0509845/
+scp -r e0509845@xgpe8:/tmp/tzw/gccpm-look-into-person-cvpr19.pytorch/default_checkpoints /user/e/e0509845/

@@ -155,8 +155,22 @@ def divideDataset(csvfile,source_dir,target_dir):
         file_name = df.iloc[i][0]
         copyfile(os.path.join(source_dir,file_name),os.path.join(target_dir,file_name))
 
-# Json2LipCSV("./all_data_aug.json")
+def Json2csv(jsonfile,out_name="anime_train_set.csv"):
+    data_ori = load_json(jsonfile)
+    data_out = list()
+    # val_len = len(data_ori)-train_len
+    for idx,data in enumerate(data_ori):
+        tmp = list()
+        tmp.append(data["file_name"].split("/")[-1])
+        for key,value in data["points"].items():
+            tmp+=[int(x) for x in value]
+            tmp.append(0)
+        data_out.append(tmp)
+    pd.DataFrame(data_out).to_csv(out_name,header=None,index=None)
+
+divideDataset("./anime_val_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\val_images")
+# Json2LipCSV("./all_data.json")
 # divideDataset("./anime_val_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\val_images")
-divideDataset("./anime_train_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\train_images")
-# data_augmentation_file(r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\all_data.json",
-#                        r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\all_data_aug.json")
+# divideDataset("./anime_train_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\train_images")
+# data_augmentation_file(r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\train.json",
+#                        r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\train_aug.json")
