@@ -1,6 +1,4 @@
-1/有些server被block了，连不上。最大的问题还是GPU一直busy根本轮不到我用
-
-2/now working:
+1/now working:
 we train the model first by the 16 kps real pose data, and then freeze the front conv layers(maybe half or more),
 add a FC layer in the last, finetune the model to learning a mapping of unpaired keypoints.
 The advantage is that we fully use the datasets.
@@ -10,11 +8,13 @@ The framework I prepare to use "https://github.com/Daniil-Osokin/gccpm-look-into
 finetuned from image pretrained model because the competition datasets only have 30,462 images for trainning.
 Maybe we can directly train on our anime datasets?(over 10,000 after data augmentation)
 
-3/Blender 是可以3D -> 2D的，我也找到了一些useful free 3D model
-tutorial: https://www.youtube.com/watch?v=vIKJ1AqfI0Q
-models: https://sketchfab.com/search?features=downloadable&q=anime&sort_by=-pertinence&type=models
+2/MMD works research.
+OpenMMD: https://github.com/peterljq/OpenMMD
+Chinese Tutorial: https://www.bilibili.com/read/cv3400259
 
-4/MMD works research.
+3/openmmd works.
+Following the steps.
+I use pmxeditor generate the bone csv file.
 
 Next:
 1/Modify LipTrainDataset or Write a new dataset loader
