@@ -16,6 +16,8 @@ Chinese Tutorial: https://www.bilibili.com/read/cv3400259
 Following the steps.
 I use pmxeditor generate the bone csv file.
 
+[the basic anime pose estiamtion is OK, but something strange is for different dataset, they perform good on differnet images.
+I consider that it is because of the limited data. e.g. 7png ]
 Next:
 1/Modify LipTrainDataset or Write a new dataset loader
 2/set a plan for optimizer parameters updating.

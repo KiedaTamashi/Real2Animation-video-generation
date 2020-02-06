@@ -168,7 +168,14 @@ def Json2csv(jsonfile,out_name="anime_train_set.csv"):
         data_out.append(tmp)
     pd.DataFrame(data_out).to_csv(out_name,header=None,index=None)
 
-divideDataset("./anime_val_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\val_images")
+def generate_test_data(img_dir):
+    names = os.listdir(img_dir)
+    with open("./test_id.txt",mode="w") as f:
+        for name in names:
+            f.write(name+"\n")
+
+generate_test_data(r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\gccpm-look-into-person\data_anime\Testing_images\testing_images")
+# divideDataset("./anime_val_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\val_images")
 # Json2LipCSV("./all_data.json")
 # divideDataset("./anime_val_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\val_images")
 # divideDataset("./anime_train_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\train_images")
