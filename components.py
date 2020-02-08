@@ -3,6 +3,7 @@ import torch
 import torch.autograd as autograd
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.nn as nn
 
 from model import Generator,Discriminator
 import time
@@ -63,4 +64,61 @@ def calc_gradient_penalty(netD, real_data, fake_data):
 
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * args.LAMBDA
     return gradient_penalty
+
+
+def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
+    """3x3 convolution with padding"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=dilation, groups=groups, bias=False, dilation=dilation)
+
+
+def conv1x1(in_planes, out_planes, stride=1):
+    """1x1 convolution"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+
+class FeatureExtractor(nn.Module):
+    def __init__(self, submodule, extracted_layers):
+        super(FeatureExtractor, self).__init__()
+        self.submodule = submodule
+        self.extracted_layers = extracted_layers
+
+    def forward(self, x):
+        outputs = []
+        for name, module in self.submodule._modules.items():
+            if name is "fc": x = x.view(x.size(0), -1)
+            x = module(x)
+            if name in self.extracted_layers:
+                outputs.append(x)
+
+class BasicBlock(nn.Module):
+    expansion = 1
+    #inplanes其实就是channel,叫法不同
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        residual = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        #把shortcut那的channel的维度统一
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
 

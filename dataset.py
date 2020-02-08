@@ -32,6 +32,13 @@ class SkeletonTrainDataset(Dataset):
         }
         if self._transform:
             sample = self._transform(sample) #TODO NOT SURE
+
+        # should be pay attention that pretrain model ResNet's input is 224*224
+        # transform = transforms.Compose([
+        #     transforms.Resize(256),
+        #     transforms.CenterCrop(224),
+        #     transforms.ToTensor()]
+        # )
         # normization
         image = sample['condition'].astype(np.float32)
         image = (image - 128) / 256 #turn to -0.5~0.5
@@ -41,7 +48,7 @@ class SkeletonTrainDataset(Dataset):
     def __len__(self):
         return len(self.train_labels)
 
-
+#TODO use dataset.imagefoloder rewrite
 
 class SkeletonValDataset(Dataset):
     def __init__(self, dataset_folder, num_images=-1):
