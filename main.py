@@ -1,6 +1,5 @@
-import settings
 import model
-
+from pipeline import *
 
 
 def main():
