@@ -18,8 +18,15 @@ I use pmxeditor generate the bone csv file.
 
 [the basic anime pose estiamtion is OK, but something strange is for different dataset, they perform good on differnet images.
 I consider that it is because of the limited data. e.g. 7png ]
-Next:2/12
 
+2/13 data collection and process of pmx file is basically over.
+75 models. next to collect them when free
+from -https://bowlroll.net/file/keyword/MMD
+     -http://mmd.xiaolindraw.com/
+     -https://www.deviantart.com/mmd-downloads-galore/gallery/39472353/models
+
+
+Next:2/12
 1/find datasets (MMD model)
 2/winAPPdriver automatic
 3/visualize the features and find sth similiar.
