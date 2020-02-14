@@ -80,8 +80,8 @@ def video2VMD_single(video_path,json_out_dir,model_csv,output_name):
 def main():
     v_path = r"D:/work/OpenMMD1.0/examples/test.avi"
     json_out_dir = r"D:\work\OpenMMD1.0\examples\json_out"
-    model_csv = r"born/yuki_miku.csv"
-    output_file = r"D:\work\OpenMMD1.0\examples\vmd_out\test_py.vmd"
+    model_csv = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.csv"
+    output_file = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmd"
     #TODO construct a .csv file 
     video2VMD_single(v_path,json_out_dir,model_csv,output_file)
 
