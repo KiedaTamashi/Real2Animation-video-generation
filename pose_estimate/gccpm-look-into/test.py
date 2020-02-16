@@ -28,7 +28,30 @@ def normalize(img, img_mean, img_scale):
     return img
 
 
-def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_scale=1/256, num_kps=16):
+def get_single_feature(features,idx):
+    print(features.shape)
+    #B,C,H,W
+    feature = features[idx, :, :]
+    print(feature.shape)
+
+    # feature = feature.view(feature.shape[1], feature.shape[2])
+    # print(feature.shape)
+    return feature
+
+def save_feature_to_img(features,result_folder):
+    # to numpy
+    for idx in range(features.shape[0]):
+        feature = get_single_feature(features,idx)
+        feature = feature.data.numpy()
+        # use sigmod to [0,1]
+        feature = 1.0 / (1 + np.exp(-1 * feature))
+        # to [0,255]
+        feature = np.round(feature * 255)
+        print(feature[0])
+        cv2.imwrite(os.path.join(result_folder,f'feature_inside_{idx}.jpg'), feature)
+
+
+def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_scale=1/256, num_kps=16,visualize_feature=False):
     height, width, _ = img.shape
     scales_ratios = [scale * base_height / max(height, width) for scale in scales]
     avg_heatmaps = np.zeros((height, width, num_kps+1), dtype=np.float32)
@@ -47,18 +70,24 @@ def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_s
                padded_img.shape[1] - resized_img.shape[1] - x_offset]
 
         tensor_img = torch.from_numpy(padded_img).permute(2, 0, 1).unsqueeze(0).float().cuda()
-        stages_output = net(tensor_img)
-
+        if visualize_feature:
+            stages_output, backbone_feature = net(tensor_img,visualize_feature)
+        else:
+            stages_output = net(tensor_img)
+        # output is all B,C,H,W, here H,W is 32x32, backbone_feature is 128,32,32
         heatmaps = np.transpose(stages_output[-1].squeeze().cpu().data.numpy(), (1, 2, 0))
         heatmaps = cv2.resize(heatmaps, (0, 0), fx=stride, fy=stride, interpolation=cv2.INTER_CUBIC)
         heatmaps = heatmaps[pad[0]:heatmaps.shape[0] - pad[2], pad[1]:heatmaps.shape[1] - pad[3]:, :]
         heatmaps = cv2.resize(heatmaps, (width, height), interpolation=cv2.INTER_CUBIC)
         avg_heatmaps = avg_heatmaps + heatmaps / len(scales_ratios)
 
-    return avg_heatmaps
+    if visualize_feature:
+        return avg_heatmaps,backbone_feature.squeeze().cpu()
+    else:
+        return avg_heatmaps
 
 
-def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, save_maps=False, num_kps=16):
+def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, save_maps=False, num_kps=16,get_feature=False):
     net = net.cuda().eval()
     base_height = 256
     scales = [1]
@@ -82,7 +111,12 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
         file_name = sample['file_name']
         img = sample['image']
 
-        avg_heatmaps = infer(net, img, scales, base_height, stride, num_kps=num_kps)
+        if get_feature:
+            avg_heatmaps,mid_feature = infer(net, img, scales, base_height, stride, num_kps=num_kps, visualize_feature=get_feature)
+            save_feature_to_img(mid_feature, results_folder)
+        else:
+            avg_heatmaps = infer(net, img, scales, base_height, stride, num_kps=num_kps,visualize_feature=get_feature)
+
 
         flip = False
         if flip:
@@ -143,9 +177,10 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
     parser.add_argument('--experiment_name', type=str, default='test',
                         help='name of output file with detected keypoints')
-    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_anime_newdata.pth", help='path to the checkpoint')
+    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real69.pth", help='path to the checkpoint')
     parser.add_argument('--multiscale', action='store_true', help='average inference results over multiple scales')
     parser.add_argument('--visualize', type=bool, default=True, help='show keypoints')
+    parser.add_argument('--get_feature', type=bool, default=True, help='--get_feature')
     parser.add_argument('--save_maps', action='store_true', help='show keypoints')
     parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real 21 for anime
                         help='number of key points')
@@ -166,4 +201,4 @@ if __name__ == '__main__':
         dataset = LipTestDataset(args.dataset_folder)
     else:
         dataset = AnimeTestDataset(args.dataset_folder)
-    evaluate(dataset, results_folder, net, args.multiscale, args.visualize,args.save_maps,num_kps=args.num_kps)
+    evaluate(dataset, results_folder, net, args.multiscale, args.visualize,args.save_maps,num_kps=args.num_kps,get_feature=args.get_feature)

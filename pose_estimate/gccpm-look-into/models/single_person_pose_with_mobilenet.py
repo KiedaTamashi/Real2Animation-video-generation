@@ -128,13 +128,17 @@ class SinglePersonPoseEstimationWithMobileNet(nn.Module):
             self.refinement_stages.append(RefinementStage(num_channels + num_heatmaps, num_channels, num_heatmaps,
                                                           to_onnx))
 
-    def forward(self, x):
+
+    def forward(self, x, visualize=False):
         backbone_features = self.model(x)
         backbone_features = self.cpm(backbone_features)
-
+        # if visualize:
+        #     feature_backbone = backbone_features
         stages_output = self.initial_stage(backbone_features)
         for refinement_stage in self.refinement_stages:
             stages_output.extend(
                 refinement_stage(torch.cat([backbone_features, stages_output[-1]], dim=1)))
-
-        return stages_output
+        if visualize:
+            return stages_output,backbone_features  #TODO change here for different feature visualize.
+        else:
+            return stages_output
