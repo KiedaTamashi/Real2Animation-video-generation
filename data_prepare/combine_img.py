@@ -1,7 +1,7 @@
 import PIL.Image as Image
 import os
 
-IMAGES_PATH = r'D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\gccpm-look-into\test_results\test0216-184022_test'
+IMAGES_PATH = r'D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\gccpm-look-into\test_results\test0217-094949_test'
 IMAGES_FORMAT = ['.jpg', '.JPG']  # 图片格式
 IMAGE_SIZE = 32  # size, totally 128 imgs
 IMAGE_ROW = 16  # 图片间隔，也就是合并成一张图后，一共有几行

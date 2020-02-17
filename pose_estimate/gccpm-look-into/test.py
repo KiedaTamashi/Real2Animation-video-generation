@@ -110,7 +110,6 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
         sample = dataset[sample_id]
         file_name = sample['file_name']
         img = sample['image']
-
         if get_feature:
             avg_heatmaps,mid_feature = infer(net, img, scales, base_height, stride, num_kps=num_kps, visualize_feature=get_feature)
             save_feature_to_img(mid_feature, results_folder)
@@ -174,15 +173,20 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
     parser.add_argument('--experiment_name', type=str, default='test',
                         help='name of output file with detected keypoints')
-    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real69.pth", help='path to the checkpoint')
     parser.add_argument('--multiscale', action='store_true', help='average inference results over multiple scales')
     parser.add_argument('--visualize', type=bool, default=True, help='show keypoints')
     parser.add_argument('--get_feature', type=bool, default=True, help='--get_feature')
     parser.add_argument('--save_maps', action='store_true', help='show keypoints')
-    parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real 21 for anime
+    # parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real69.pth", help='path to the checkpoint')
+    # parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
+    # parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real 21 for anime
+    #                     help='number of key points')
+
+    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real.pth", help='path to the checkpoint')
+    parser.add_argument('--dataset_folder', type=str, default="./data_lip", help='path to dataset folder')
+    parser.add_argument('--num_kps', type=int, default=16,  # need change 16 for real 21 for anime
                         help='number of key points')
     args = parser.parse_args()
 

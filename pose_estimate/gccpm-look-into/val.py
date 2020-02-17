@@ -126,10 +126,10 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_folder', type=str, default="./data_lip", help='path to dataset folder')
     parser.add_argument('--output-name', type=str, default='detections.csv',
                         help='name of output file with detected keypoints')
-    parser.add_argument('--checkpoint-path', type=str, required=True, help='path to the checkpoint')
+    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real.pth", help='path to the checkpoint')
     parser.add_argument('--multiscale', action='store_true', help='average inference results over multiple scales')
     parser.add_argument('--visualize', action='store_true', help='show keypoints')
-    parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real 21 for anime
+    parser.add_argument('--num_kps', type=int, default=16,  # need change 16 for real 21 for anime
                         help='number of key points')
     args = parser.parse_args()
 
