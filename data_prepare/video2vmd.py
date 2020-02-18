@@ -57,7 +57,7 @@ def json3DtoVMD(json3d_dir, model_csv,output_name):
     :param output_name = ../examples/vmd_out/test.vmd
     :return:
     '''
-    os.chdir(os.path.join(base_dir, "VMD-3d-pose-baseline-multi"))
+    os.chdir(os.path.join(base_dir, "VMD-3d-pose-baseline-multi"))#TODO C is what?
     command = f"python applications\pos2vmd_multi.py -v 2 -t {json3d_dir} " \
               f"-b {model_csv} -c 30 -z 2 -x 15 -m 0 -i 1.5 -d 10 -a 1 -k 1 -e 0 " \
               f"-o {output_name}"
@@ -81,7 +81,7 @@ def main():
     v_path = r"D:/work/OpenMMD1.0/examples/test.avi"
     json_out_dir = r"D:\work\OpenMMD1.0\examples\json_out"
     model_csv = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.csv"
-    output_file = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmd"
+    output_file = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.vmd"
     #TODO construct a .csv file 
     video2VMD_single(v_path,json_out_dir,model_csv,output_file)
 
