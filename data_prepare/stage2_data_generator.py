@@ -1,14 +1,13 @@
 import os
-print(os.environ['COMSPEC'])
 import random
 import numpy as np
 import shutil
 import cv2
-from data_prepare.video2vmd import video2VMD_single
+from data_prepare.video2vmd import *
 import pandas as pd
 import ffmpeg
 import datetime
-import subprocess
+from train_logger import get_logger
 
 def get_time(second):
     # import seconds of video, output typical time.
@@ -35,27 +34,30 @@ def cut_video(video_path, out_video_path, start_time, during_time):
     if res != 0:
         print("error! "+video_path)
 
-def rename_videos(video_dir):
+def copy_videos(video_dir,keyword="dance_"):
     cnt = 0
     for item in os.listdir(video_dir):
         oripath = os.path.join(video_dir,item)
-        targetpath = os.path.join(video_dir,"dance_"+str(cnt)+".mp4")
+        targetpath = os.path.join(video_dir,keyword+str(cnt)+".mp4")
         shutil.copy(oripath,targetpath)
         cnt+=1
 
-# rename_videos(r"D:\download_cache\dance_video")
-deal_video(r"D:\download_cache\dance_video",r"D:\download_cache\PMXmodel\VIDEOfile")
-
 def get_pair_csv(video_dir,csv_dir):
     #video_name,model_name
-    videos = list()
-    csvs = list()
-    for filename in os.listdir(video_dir):
-        videos.append(filename)
-    for csvname in os.listdir(csv_dir):
-        csvs.append(csvname)
+    output = list()
+    cnt=0
+    for videoname in os.listdir(video_dir):
+        video_params = ffmpeg.probe(os.path.join(video_dir,videoname))['streams'][0]
+        nb_frames = int(video_params['nb_frames'])
+        fr = round(eval(video_params['avg_frame_rate']),2)
+        for csvname in os.listdir(csv_dir):
+            output.append([videoname[:-4],csvname[:-4],fr,nb_frames])
+        cnt+=1
+        print(cnt)
+    df = pd.DataFrame(output)
+    df.to_csv(r"D:\download_cache\PMXmodel\index.csv",header=None,index=None)
 
-    
+
 
 def generate_vmd(data_dir,index_csv, start_num,end_num):
     '''
@@ -63,17 +65,48 @@ def generate_vmd(data_dir,index_csv, start_num,end_num):
     The range is decided by start_num and end_num
     !!! not include end_num
     '''
-    #csv: video_name(+mp4), model_name(np format), frame_rate, length(counted by frame)
+    #5913 total
+    #csv: video_name, model_name(np format), frame_rate, length(counted by frame)
     # maybe use all mp4 for easier index
+    VMDlogger = get_logger("./")
     df = pd.read_csv(index_csv,header=None)
     total_num = end_num-start_num+1
     print("process {} samples, from {} to {}.".format(total_num,start_num,end_num-1))
-    for idx in range(start_num,end_num):
-        video_name, model_name, _, _ = df.iloc[idx]
-        video_path = os.path.join(data_dir,"VIDEOfile",video_name)
-        csv_path = os.path.join(data_dir,"CSVfile",model_name+".csv")
-        output_path = os.path.join(data_dir,"VMDfile",video_name[:-4]+"_"+model_name+".vmd")
-        video2VMD_single(video_path,"./json_out",csv_path,output_path)
+    for item in range(start_num*73,end_num*73,73):
+        json_out_dir = "D:/download_cache/json_out"
+        if os.path.exists(json_out_dir):
+            shutil.rmtree(json_out_dir)
+        os.mkdir(json_out_dir)
+
+        json3d_folder = json_out_dir + "_3d"
+        if os.path.exists(json3d_folder):
+            shutil.rmtree(json3d_folder)
+
+        video_name, _, _, _ = df.iloc[item]
+        video_path = os.path.join(data_dir,"VIDEOfile",video_name+".mp4")
+        video2keypoints(video_path, json_out_dir)
+        kpsTo3D(json_out_dir)
+        video2depth(video_path, json3d_folder)
+        cnt=0
+        VMDlogger.debug(f"===={video_name} starts!=====")
+
+        for idx in range(item,item+73):
+            _, model_name, _, _ = df.iloc[idx]
+            csv_path = os.path.join(data_dir,"CSVfile",model_name+".csv")
+            output_path = os.path.join(data_dir,"VMDfile",video_name+"_"+model_name+".vmd")
+            try:
+                json3DtoVMD(json3d_folder, csv_path, output_path)
+                cnt+=1
+                VMDlogger.debug(cnt)
+            except:
+                VMDlogger.debug(model_name)
 
 
 
+
+        # video2VMD_single(video_path,json_out_dir,csv_path,output_path)
+
+# rename_videos(r"D:\download_cache\dance_video")
+# deal_video(r"D:\download_cache\dance_video",r"D:\download_cache\PMXmodel\VIDEOfile")
+# get_pair_csv(r"D:\download_cache\PMXmodel\VIDEOfile","D:\download_cache\PMXmodel\CSVfile")
+generate_vmd(r"D:\download_cache\PMXmodel",r"D:\download_cache\PMXmodel\index.csv",start_num=0,end_num=5)

@@ -1,19 +1,22 @@
 import unittest
 from appium import webdriver
 from selenium.webdriver.common.keys import Keys
+import pandas as pd
+import os
 
 class SimpleCalculatorTests(unittest.TestCase):
-
-
-
 
     @classmethod
     def setUpClass(self):
         #set up appium
         desired_caps = {}
         desired_caps["app"] = r"D:/work/MikuMikuDance 10th Anniversary Version/MikuMikudance.exe"
-        self.target_dir = r"D:\work"
-        self.pairs = [[r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.Pmx', r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmd', 30, 25]]
+        self.index = r"D:\download_cache\PMXmodel\index.csv"
+        self.process_range = [0,100] # start_num, num_of_read
+        self.base_dir = "D:/download_cache/PMXmodel"
+        df = pd.read_csv(self.index, header=None,skiprows=self.process_range[0],nrows=self.process_range[1])
+        # self.pairs = [[r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmx', r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmd', 30, 25]]
+        self.pairs = df.values.tolist()
         self.driver = webdriver.Remote(
             command_executor='http://127.0.0.1:4723',
             desired_capabilities= desired_caps)
@@ -32,7 +35,10 @@ class SimpleCalculatorTests(unittest.TestCase):
     def test_initialize(self):
         for pmx in self.pairs:
             # for each video, costing 224s
-            pmxfile,pmdfile,frame_end,fr = pmx
+            pmxfile_,vmdfile_,frame_end,fr = pmx
+            pmxfile = self.base_dir+"/PMXfile/"+pmxfile_+"/"+pmxfile_+".pmx"
+            vmdfile = self.base_dir + "/VMDfile/" + vmdfile_ + ".vmd"
+
             #pmx
             self.driver.find_element_by_name("載　入").click()
             self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名(N)')]").send_keys(pmxfile+Keys.ENTER)
@@ -40,7 +46,7 @@ class SimpleCalculatorTests(unittest.TestCase):
             #pmd
             self.driver.find_element_by_name(" 文件 (F)  |").click()
             self.driver.find_element_by_xpath('//MenuItem[starts-with(@Name, "导入动作数据")]').click()
-            self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名(N)')]").send_keys(pmdfile + Keys.ENTER)
+            self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名(N)')]").send_keys(vmdfile + Keys.ENTER)
             self.driver.find_element_by_xpath("//Button[starts-with(@Name,'确定')]").click()
             #output
             aviname = pmxfile.split("\\")[-1][:-4]

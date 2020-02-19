@@ -1,15 +1,17 @@
 import PIL.Image as Image
 import os
 
-IMAGES_PATH = r'D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\gccpm-look-into\test_results\test0217-094949_test'
+IMAGES_PATH = r'D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\gccpm-look-into\test_results\feature_real2anime_refine\refine_stage6'
 IMAGES_FORMAT = ['.jpg', '.JPG']  # 图片格式
 IMAGE_SIZE = 32  # size, totally 128 imgs
-IMAGE_ROW = 16  # 图片间隔，也就是合并成一张图后，一共有几行
-IMAGE_COLUMN = 8  # 图片间隔，也就是合并成一张图后，一共有几列
-IMAGE_SAVE_PATH = os.path.join(IMAGES_PATH,'backbone_feature.jpg')  # 图片转换后的地址
+IMAGE_ROW = 2  # 图片间隔，也就是合并成一张图后，一共有几行
+IMAGE_COLUMN = 11  # 图片间隔，也就是合并成一张图后，一共有几列
+IMAGE_SAVE_PATH = os.path.join("\\".join(IMAGES_PATH.split("\\")[:-1]),IMAGES_PATH.split("\\")[-1]+'.jpg')  # 图片转换后的地址
 
 # 获取图片集地址下的所有图片名称
-image_names = [name for name in os.listdir(IMAGES_PATH) for item in IMAGES_FORMAT if
+list_n = os.listdir(IMAGES_PATH)
+list_n.sort(key=lambda x:int(x.split("_")[-1][:-4]))
+image_names = [name for name in list_n for item in IMAGES_FORMAT if
                os.path.splitext(name)[1] == item]
 
 # 简单的对于参数的设定和实际图片集的大小进行数量判断

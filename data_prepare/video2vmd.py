@@ -77,13 +77,13 @@ def video2VMD_single(video_path,json_out_dir,model_csv,output_name):
     video2depth(video_path,json3d_folder)
     json3DtoVMD(json3d_folder,model_csv,output_name)
 
-def main():
-    v_path = r"D:/work/OpenMMD1.0/examples/test.avi"
-    json_out_dir = r"D:\work\OpenMMD1.0\examples\json_out"
-    model_csv = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.csv"
-    output_file = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.vmd"
-    #TODO construct a .csv file 
-    video2VMD_single(v_path,json_out_dir,model_csv,output_file)
-
-if __name__=="__main__":
-    main()
+# def main():
+#     v_path = r"D:/work/OpenMMD1.0/examples/test.avi"
+#     json_out_dir = r"D:\work\OpenMMD1.0\examples\json_out"
+#     model_csv = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.csv"
+#     output_file = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.vmd"
+#     #TODO construct a .csv file
+#     video2VMD_single(v_path,json_out_dir,model_csv,output_file)
+#
+# if __name__=="__main__":
+#     main()

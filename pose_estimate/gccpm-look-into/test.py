@@ -29,10 +29,8 @@ def normalize(img, img_mean, img_scale):
 
 
 def get_single_feature(features,idx):
-    print(features.shape)
     #B,C,H,W
     feature = features[idx, :, :]
-    print(feature.shape)
 
     # feature = feature.view(feature.shape[1], feature.shape[2])
     # print(feature.shape)
@@ -40,15 +38,21 @@ def get_single_feature(features,idx):
 
 def save_feature_to_img(features,result_folder):
     # to numpy
-    for idx in range(features.shape[0]):
-        feature = get_single_feature(features,idx)
-        feature = feature.data.numpy()
-        # use sigmod to [0,1]
-        feature = 1.0 / (1 + np.exp(-1 * feature))
-        # to [0,255]
-        feature = np.round(feature * 255)
-        print(feature[0])
-        cv2.imwrite(os.path.join(result_folder,f'feature_inside_{idx}.jpg'), feature)
+    cnt=0
+    for item in features:
+        cnt+=1
+        item = item.squeeze().cpu()
+        folder_n = os.path.join(result_folder, f'refine_stage{cnt}')
+        os.mkdir(folder_n)
+        for idx in range(item.shape[0]):
+            feature = get_single_feature(item,idx)
+            feature = feature.data.numpy()
+            # use sigmod to [0,1]
+            feature = 1.0 / (1 + np.exp(-1 * feature))
+            # to [0,255]
+            feature = np.round(feature * 255)
+            print(feature[0])
+            cv2.imwrite(os.path.join(folder_n,f'{cnt}_feature_inside_{idx}.jpg'), feature)
 
 
 def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_scale=1/256, num_kps=16,visualize_feature=False):
@@ -71,7 +75,7 @@ def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_s
 
         tensor_img = torch.from_numpy(padded_img).permute(2, 0, 1).unsqueeze(0).float().cuda()
         if visualize_feature:
-            stages_output, backbone_feature = net(tensor_img,visualize_feature)
+            stages_output, mid_feature = net(tensor_img,visualize_feature)
         else:
             stages_output = net(tensor_img)
         # output is all B,C,H,W, here H,W is 32x32, backbone_feature is 128,32,32
@@ -82,7 +86,7 @@ def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_s
         avg_heatmaps = avg_heatmaps + heatmaps / len(scales_ratios)
 
     if visualize_feature:
-        return avg_heatmaps,backbone_feature.squeeze().cpu()
+        return avg_heatmaps,mid_feature
     else:
         return avg_heatmaps
 
@@ -179,15 +183,15 @@ if __name__ == '__main__':
     parser.add_argument('--visualize', type=bool, default=True, help='show keypoints')
     parser.add_argument('--get_feature', type=bool, default=True, help='--get_feature')
     parser.add_argument('--save_maps', action='store_true', help='show keypoints')
-    # parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real69.pth", help='path to the checkpoint')
-    # parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
-    # parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real 21 for anime
-    #                     help='number of key points')
-
-    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real.pth", help='path to the checkpoint')
-    parser.add_argument('--dataset_folder', type=str, default="./data_lip", help='path to dataset folder')
-    parser.add_argument('--num_kps', type=int, default=16,  # need change 16 for real 21 for anime
+    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_anime_newdata.pth", help='path to the checkpoint')
+    parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
+    parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real 21 for anime
                         help='number of key points')
+
+    # parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real.pth", help='path to the checkpoint')
+    # parser.add_argument('--dataset_folder', type=str, default="./data_lip", help='path to dataset folder')
+    # parser.add_argument('--num_kps', type=int, default=16,  # need change 16 for real 21 for anime
+    #                     help='number of key points')
     args = parser.parse_args()
 
 

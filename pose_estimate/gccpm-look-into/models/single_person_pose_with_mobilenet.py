@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from modules.conv import conv, conv_dw
-
+from copy import deepcopy
 
 class InitialStage(nn.Module):
     def __init__(self, num_channels, num_heatmaps):
@@ -134,11 +134,20 @@ class SinglePersonPoseEstimationWithMobileNet(nn.Module):
         backbone_features = self.cpm(backbone_features)
         # if visualize:
         #     feature_backbone = backbone_features
+        mid_feature = list()
+
         stages_output = self.initial_stage(backbone_features)
+        # if visualize:
+        #     mid_feature.append(backbone_features)
+        #     mid_feature.append(deepcopy(stages_output[0].cuda().detach()))
+
         for refinement_stage in self.refinement_stages:
             stages_output.extend(
                 refinement_stage(torch.cat([backbone_features, stages_output[-1]], dim=1)))
+
         if visualize:
-            return stages_output,backbone_features  #TODO change here for different feature visualize.
+            for item in stages_output:
+                mid_feature.append(item)
+            return stages_output,mid_feature  #TODO change here for different feature visualize.
         else:
             return stages_output
