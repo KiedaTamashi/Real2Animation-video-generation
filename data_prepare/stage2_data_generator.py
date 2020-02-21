@@ -4,6 +4,7 @@ import numpy as np
 import shutil
 import cv2
 from data_prepare.video2vmd import *
+from data_prepare.smooth_pose import smooth_json_pose
 import pandas as pd
 import ffmpeg
 import datetime
@@ -85,6 +86,15 @@ def generate_vmd(data_dir,index_csv, start_num,end_num):
         video_name, _, _, _ = df.iloc[item]
         video_path = os.path.join(data_dir,"VIDEOfile",video_name+".mp4")
         video2keypoints(video_path, json_out_dir)
+        #smooth the kps. Using window size ~= 1/2*frame_rate
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        wid_size = int(fps/2)
+        if wid_size>21:
+            wid_size=21
+        else:
+            wid_size = wid_size-1 if (wid_size & 1) == 0 else wid_size
+        smooth_json_pose(json_out_dir,window_length=wid_size,polyorder=3,threshold=0.15)
         kpsTo3D(json_out_dir)
         video2depth(video_path, json3d_folder)
         cnt=0
@@ -109,4 +119,5 @@ def generate_vmd(data_dir,index_csv, start_num,end_num):
 # rename_videos(r"D:\download_cache\dance_video")
 # deal_video(r"D:\download_cache\dance_video",r"D:\download_cache\PMXmodel\VIDEOfile")
 # get_pair_csv(r"D:\download_cache\PMXmodel\VIDEOfile","D:\download_cache\PMXmodel\CSVfile")
-generate_vmd(r"D:\download_cache\PMXmodel",r"D:\download_cache\PMXmodel\index.csv",start_num=0,end_num=5)
+if __name__=="__main__":
+    generate_vmd(r"D:\download_cache\PMXmodel",r"D:\download_cache\PMXmodel\index.csv",start_num=0,end_num=5)

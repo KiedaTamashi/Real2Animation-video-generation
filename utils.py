@@ -2,7 +2,7 @@ import torch
 import logging
 import os
 from logging import handlers
-
+from moviepy.editor import *
 
 def generate_one_mone():
     one = torch.FloatTensor([1])
@@ -39,3 +39,40 @@ def get_logger(LOG_ROOT, level=logging.DEBUG, back_count=0,cmd_stream=False):
         ch.setLevel(level)
         logger.addHandler(ch)
     return logger
+
+
+def combineTwoVideo(v1_path=r'D:\work\OpenMMD1.0\examples\ori_pose.avi',v2_path=r'D:\work\OpenMMD1.0\examples\smooth_pose.avi',combine_path=r'D:\work\OpenMMD1.0\examples\combine_pose.avi'):
+    import cv2
+    import numpy as np
+
+    videoLeftUp = cv2.VideoCapture(v1_path)
+    videoLeftDown = cv2.VideoCapture(v2_path)
+    # videoRightUp = cv2.VideoCapture('./res/2_003_015.mp4')
+    # videoRightDown = cv2.VideoCapture('./res/2_003_016.mp4')
+
+    fps = videoLeftUp.get(cv2.CAP_PROP_FPS)
+
+    width = (int(videoLeftUp.get(cv2.CAP_PROP_FRAME_WIDTH)))
+    height = (int(videoLeftUp.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+
+    videoWriter = cv2.VideoWriter(combine_path, cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, (width, height*2))
+
+    successLeftUp, frameLeftUp = videoLeftUp.read()
+    successLeftDown, frameLeftDown = videoLeftDown.read()
+    # successRightUp, frameRightUp = videoRightUp.read()
+    # successRightDown, frameRightDown = videoRightDown.read()
+
+    while successLeftUp and successLeftDown:
+        frameLeftUp = cv2.resize(frameLeftUp, (width, height), interpolation=cv2.INTER_CUBIC)
+        frameLeftDown = cv2.resize(frameLeftDown, (width, height), interpolation=cv2.INTER_CUBIC)
+
+        frame = np.vstack((frameLeftUp, frameLeftDown))
+
+        videoWriter.write(frame)
+        successLeftUp, frameLeftUp = videoLeftUp.read()
+        successLeftDown, frameLeftDown = videoLeftDown.read()
+
+    videoWriter.release()
+    videoLeftUp.release()
+    videoLeftDown.release()
+# combineTwoVideo()

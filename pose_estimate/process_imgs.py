@@ -174,7 +174,7 @@ def generate_test_data(img_dir):
         for name in names:
             f.write(name+"\n")
 
-generate_test_data(r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\gccpm-look-into-person\data_anime\Testing_images\testing_images")
+# generate_test_data(r"D:\work\pycharmproject\Real2Animation-video-generation\pose_estimate\gccpm-look-into-person\data_anime\Testing_images\testing_images")
 # divideDataset("./anime_val_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\val_images")
 # Json2LipCSV("./all_data.json")
 # divideDataset("./anime_val_set.csv",r"E:\PycharmProject\data\images_augment",r"E:\PycharmProject\gccpm-look-into-person-cvpr19.pytorch\data_anime\TrainVal_images\val_images")
