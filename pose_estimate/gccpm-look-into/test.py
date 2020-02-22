@@ -209,4 +209,6 @@ if __name__ == '__main__':
         dataset = LipTestDataset(args.dataset_folder)
     else:
         dataset = AnimeTestDataset(args.dataset_folder)
+
+    # TODO what we need? the heatmaps or shadow like image.
     evaluate(dataset, results_folder, net, args.multiscale, args.visualize,args.save_maps,num_kps=args.num_kps,get_feature=args.get_feature)
