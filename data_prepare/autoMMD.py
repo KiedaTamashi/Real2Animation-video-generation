@@ -6,15 +6,19 @@ import os
 import time
 
 class SimpleCalculatorTests(unittest.TestCase):
-
+    '''
+    Hyperparams is in setUpClass
+    '''
     @classmethod
     def setUpClass(self):
-        #set up appium
+        #Hyperparams
         desired_caps = {}
         desired_caps["app"] = r"D:\work\MikuMikuDance 10th Anniversary Version\MikuMikudance.exe"
         self.index = r"D:\download_cache\PMXmodel\index.csv"
         self.process_range = [0,1] # start_num, num_of_read
         self.base_dir = "D:\download_cache\PMXmodel"
+
+
         df = pd.read_csv(self.index, header=None,skiprows=self.process_range[0],nrows=self.process_range[1])
         # self.pairs = [[r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmx', r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmd', 30, 25]]
         self.pairs = df.values.tolist()

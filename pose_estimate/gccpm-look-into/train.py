@@ -77,9 +77,10 @@ def train(images_folder, num_refinement_stages, base_lr, batch_size, batches_per
         {'params': get_parameters_bn(net.refinement_stages, 'bias'), 'lr': base_lr * 2, 'weight_decay': 0}
     ]
     opt_p = []
+    #TODO modify params needed update above and change the model structure.
     if not finetune:
         opt_p +=backbone_p
-        opt_p +=cpm_p
+    opt_p +=cpm_p
     opt_p +=initial_p
     opt_p +=refine_p
     optimizer = optim.Adam(opt_p, lr=base_lr, weight_decay=5e-4)
