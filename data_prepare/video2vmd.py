@@ -21,8 +21,9 @@ def video2keypoints(video_path,json_out_dir,number_people=1):
     :return:
     '''
     os.chdir(base_dir)
-    command = f"D:/work/OpenMMD1.0/bin/OpenPoseDemo.exe --video {video_path} --write_json {json_out_dir} --number_people_max {number_people}"
-    print(os.system(command))
+    #--display 0
+    command = f"D:/work/OpenMMD1.0/bin/OpenPoseDemo.exe --video {video_path} --write_json {json_out_dir} --number_people_max {number_people} --display 0"
+    print(os.system(command)) #0=success
 
 # step 2 /3d-pose-baseline-vmd. kps2 3D
 def kpsTo3D(json_out_dir,fps=25):

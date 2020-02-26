@@ -8,12 +8,18 @@ from pose_estimate.process_imgs import load_json,write_json
 import time
 
 def smooth_json_pose(json_dir,window_length=15,polyorder=3,threshold=0.15):
-    data, previous_x, previous_y = [],[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    data, previous_x, previous_y = [],[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     fileList = os.listdir(json_dir)
     fileList.sort(key=lambda x:int(x.split("_")[-2]))
+    cnt=0
     for file in fileList:
         x_data, y_data = [], []
-        pose = load_json(os.path.join(json_dir,file))['people'][0]['pose_keypoints_2d']
+        try:
+            pose = load_json(os.path.join(json_dir,file))['people'][0]['pose_keypoints_2d']
+        except:
+            print("frame "+str(cnt)+" error")
+            continue
+        cnt += 1
         for idx in range(0,len(pose),3):
             x,y,prob = pose[idx],pose[idx+1],pose[idx+2]
             if prob > threshold:
@@ -114,5 +120,5 @@ def smoothPose(pose_df,input_source=None,output_video=None,window_length=15,poly
 
 if __name__=="__main__":
     s_t = time.time()
-    smooth_json_pose(r"D:\work\OpenMMD1.0\examples\json_out")
+    smooth_json_pose(r"D:\download_cache\json_out")
     print(time.time() - s_t)
