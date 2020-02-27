@@ -9,6 +9,7 @@ import pandas as pd
 import ffmpeg
 import datetime
 from train_logger import get_logger
+import time
 
 def get_time(second):
     # import seconds of video, output typical time.
@@ -77,6 +78,7 @@ def generate_vmd(data_dir,index_csv, start_num,end_num):
         json_out_dir = "D:/download_cache/json_out"
         if os.path.exists(json_out_dir):
             shutil.rmtree(json_out_dir)
+        time.sleep(5)
         os.mkdir(json_out_dir)
 
         json3d_folder = json_out_dir + "_3d"
@@ -123,4 +125,4 @@ if __name__=="__main__":
     # deal_video(r"D:\download_cache\dance_video",r"D:\download_cache\PMXmodel\VIDEOfile")
     # get_pair_csv(r"D:\download_cache\PMXmodel\VIDEOfile","D:\download_cache\PMXmodel\CSVfile")
     # video24 5501 frame can't detect sth.
-    generate_vmd(r"D:\download_cache\PMXmodel",r"D:\download_cache\PMXmodel\index.csv",start_num=11,end_num=18)
+    generate_vmd(r"D:\download_cache\PMXmodel",r"D:\download_cache\PMXmodel\index.csv",start_num=14,end_num=18)

@@ -97,17 +97,19 @@ def combineTwoVideo_width(v1_path=r'D:\work\OpenMMD1.0\examples\ori_pose.avi',v2
     successLeftDown, frameLeftDown = videoLeftDown.read()
     # successRightUp, frameRightUp = videoRightUp.read()
     # successRightDown, frameRightDown = videoRightDown.read()
-
+    frame_num = 0
     while successLeftUp and successLeftDown:
         frameLeftUp = cv2.resize(frameLeftUp, (width, height), interpolation=cv2.INTER_CUBIC)
         frameLeftDown = cv2.resize(frameLeftDown, (width, height), interpolation=cv2.INTER_CUBIC)
 
         frame = np.hstack((frameLeftDown,frameLeftUp))
-
         videoWriter.write(frame)
         successLeftUp, frameLeftUp = videoLeftUp.read()
         successLeftDown, frameLeftDown = videoLeftDown.read()
-
+        if frame_num == 600:
+            break
+        frame_num+=1
+        print(frame_num)
     videoWriter.release()
     videoLeftUp.release()
     videoLeftDown.release()

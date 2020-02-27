@@ -26,7 +26,7 @@ from -https://bowlroll.net/file/keyword/MMD >20190801
      -https://www.deviantart.com/mmd-downloads-galore/gallery/39472353/models
 
 
-Next:2/12
-1/find datasets (MMD model)
-2/winAPPdriver automatic
-3/visualize the features and find sth similiar.
+Next:2/27
+1/ generate datasets as soon as possible. ( clip video data to useful clips)
+2/ test the VAE model.
+3/ build the PSGAN model.
