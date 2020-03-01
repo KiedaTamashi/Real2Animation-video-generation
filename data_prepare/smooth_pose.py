@@ -16,9 +16,8 @@ def smooth_json_pose(json_dir,window_length=15,polyorder=3,threshold=0.15):
         x_data, y_data = [], []
         try:
             pose = load_json(os.path.join(json_dir,file))['people'][0]['pose_keypoints_2d']
-        except:
-            print("frame "+str(cnt)+" error")
-            continue
+        except IndexError:
+            pose = [0]*54
         cnt += 1
         for idx in range(0,len(pose),3):
             x,y,prob = pose[idx],pose[idx+1],pose[idx+2]
@@ -35,6 +34,8 @@ def smooth_json_pose(json_dir,window_length=15,polyorder=3,threshold=0.15):
         previous_x, previous_y = x_data, y_data
         # use this break statement to check your data before processing the whole video
         # if frame_number == 300: break
+
+
     df = pd.DataFrame(data)
     # Smooth it out
     smooth_df = smoothPose(df,window_length=window_length,polyorder=polyorder)
@@ -48,7 +49,10 @@ def smooth_json_pose(json_dir,window_length=15,polyorder=3,threshold=0.15):
             pose_list.append(point[0])
             pose_list.append(point[1])
             pose_list.append(float(0.9))
-        content['people'][0]['pose_keypoints_2d'] = pose_list
+        try:
+            content['people'][0]['pose_keypoints_2d'] = pose_list
+        except IndexError:
+            continue
         write_json(os.path.join(json_dir,file),content)
 
 

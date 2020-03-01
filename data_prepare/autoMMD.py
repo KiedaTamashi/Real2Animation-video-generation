@@ -17,6 +17,7 @@ class SimpleCalculatorTests(unittest.TestCase):
         self.index = r"D:\download_cache\PMXmodel\index.csv"
         self.process_range = [0,1] # start_num, num_of_read
         self.base_dir = "D:\download_cache\PMXmodel"
+        self.clip_index_dir = r"D:\download_cache\PMXmodel\CLIPIndex"
 
 
         df = pd.read_csv(self.index, header=None,skiprows=self.process_range[0],nrows=self.process_range[1])
@@ -40,10 +41,11 @@ class SimpleCalculatorTests(unittest.TestCase):
     def test_initialize(self):
         for pmx in self.pairs:
             # for each video, costing 224s
-            videofile_,pmxfile_,fr,frame_end = pmx
+            videofile_,pmxfile_,fr,frames = pmx
             pmxfile_ = str(pmxfile_)
             pmxfile = self.base_dir+"\PMXfile\\"+pmxfile_+"\\"+pmxfile_+".pmx"
             vmdfile = self.base_dir + "\VMDfile\\" + videofile_+"_"+pmxfile_+".vmd"
+            clipindex = pd.read_csv(os.path.join(self.clip_index_dir,videofile_+".csv"),header=None)
 
             #pmx
             self.driver.find_element_by_name("載　入").click()
@@ -55,25 +57,28 @@ class SimpleCalculatorTests(unittest.TestCase):
             self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名(N)')]").send_keys(vmdfile + Keys.ENTER)
             self.driver.find_element_by_xpath("//Button[starts-with(@Name,'确定')]").click()
             #output
-            aviname = vmdfile.split("\\")[-1][:-4]
-            self.driver.find_element_by_name(" 文件 (F)  |").click()
-            self.driver.find_element_by_xpath('//MenuItem[starts-with(@Name, "导出视频 ")]').click()
 
-            # self.driver.find_element_by_xpath("ToolBar[@ClassName='ToolbarWindow32']").click()
-            # self.driver.find_element_by_xpath(
-            #     '//Edit[starts-with(@Name, "地址")]').send_keys(
-            #     self.target_dir + Keys.ENTER)
-            # self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'地址')]").send_keys(self.target_dir + Keys.ENTER)
-            self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名')]").send_keys(aviname + Keys.ENTER)
-            self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'FPS')]").send_keys(Keys.BACKSPACE+Keys.BACKSPACE+str(fr))
-            self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'录制范围')]").send_keys('0')
-            self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'至')]").send_keys(str(frame_end))
-            self.driver.find_element_by_xpath("//ComboBox[starts-with(@Name,'视频压缩编码')]").send_keys(Keys.ARROW_UP)
+            for num,clip in enumerate(clipindex.values.tolist()):
+                aviname = videofile_+"_"+str(num)+"_"+pmxfile_+".vmd"
+                start_frame, end_frame = clip
+                self.driver.find_element_by_name(" 文件 (F)  |").click()
+                self.driver.find_element_by_xpath('//MenuItem[starts-with(@Name, "导出视频 ")]').click()
+
+                # self.driver.find_element_by_xpath("ToolBar[@ClassName='ToolbarWindow32']").click()
+                # self.driver.find_element_by_xpath(
+                #     '//Edit[starts-with(@Name, "地址")]').send_keys(
+                #     self.target_dir + Keys.ENTER)
+                # self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'地址')]").send_keys(self.target_dir + Keys.ENTER)
+                self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名')]").send_keys(aviname + Keys.ENTER)
+                self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'FPS')]").send_keys(Keys.BACKSPACE+Keys.BACKSPACE+str(fr))
+                self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'录制范围')]").send_keys(str(start_frame))
+                self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'至')]").send_keys(str(end_frame))
+                self.driver.find_element_by_xpath("//ComboBox[starts-with(@Name,'视频压缩编码')]").send_keys(Keys.ARROW_UP)
 
 
-            self.driver.find_element_by_xpath("//Button[starts-with(@Name,'确认')]").click()
-            sleeptime = int(frame_end*0.056)+5
-            time.sleep(sleeptime)
+                self.driver.find_element_by_xpath("//Button[starts-with(@Name,'确认')]").click()
+                sleeptime = int((int(end_frame)-int(start_frame))*0.056)+5
+                time.sleep(sleeptime)
             # delete
             self.driver.find_elements_by_xpath("//Button[starts-with(@Name,'刪　除')]")[1].click()
             self.driver.find_element_by_xpath("//Button[starts-with(@Name,'确定')]").click()

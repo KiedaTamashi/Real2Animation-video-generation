@@ -125,4 +125,4 @@ if __name__=="__main__":
     # deal_video(r"D:\download_cache\dance_video",r"D:\download_cache\PMXmodel\VIDEOfile")
     # get_pair_csv(r"D:\download_cache\PMXmodel\VIDEOfile","D:\download_cache\PMXmodel\CSVfile")
     # video24 5501 frame can't detect sth.
-    generate_vmd(r"D:\download_cache\PMXmodel",r"D:\download_cache\PMXmodel\index.csv",start_num=14,end_num=18)
+    generate_vmd(r"D:\download_cache\PMXmodel",r"D:\download_cache\PMXmodel\index.csv",start_num=43,end_num=46)
