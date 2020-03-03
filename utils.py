@@ -171,20 +171,23 @@ def main():
     right_vs.sort(key=lambda x:int(x[:-4]))
     left_vs = os.listdir(left_base)
     left_vs.sort(key=lambda x: int(x.split("_")[-1][:-4]))
-    for idx in range(len(left_base)):
-        left = left_vs[idx]
-        right = right_vs[idx]
-        out = "c_"+right[:-4]+".avi"
-        combineTwoVideo_height(os.path.join(left_base,left),os.path.join(right_base,right),os.path.join(right_base,out))
+    for idx in range(len(left_vs)):
+        print(idx)
+        if idx<36:
+            continue
+        else:
+            left = left_vs[idx]
+            right = right_vs[idx]
+            out = "c_"+right[:-4]+".avi"
+            combineTwoVideo_height(os.path.join(left_base,left),os.path.join(right_base,right),os.path.join(right_base,out))
+
 
 
 
 if __name__=="__main__":
     # combineTwoVideo_width("D:\download_cache\mmd_combine_pose.avi","D:\download_cache\original.avi","D:\download_cache\compare.avi")
-    # clips10 = [[41,82],[235,360],[880,950],[1015,1112],[1302,1465],[1733,1860],
-    #          [1950,2005],[2042,2150],[2290,2447],[2670,2805]
-    #          ]
-    # clips01 = [[],[],[]
-    #            ]
-    # genClipCsvFile("dance_10",clips10)
-    main()
+    clips80 = [[60,90],[390,520],[560,600],[810,910],[1110,1170],[1915,1970],[1980,2045],[2740,2790],[3000,3060],[3120,3202],[3750,4020],[4440,4465]
+               ,[4545,4575],[4620,4671],[5040,5080],[5310,5340]
+               ]
+    genClipCsvFile("dance_80",clips80)
+    # main()
