@@ -26,7 +26,8 @@ from -https://bowlroll.net/file/keyword/MMD >20190801
      -https://www.deviantart.com/mmd-downloads-galore/gallery/39472353/models
 
 
-Next:2/27
-1/ generate datasets as soon as possible. ( clip video data to useful clips)
-2/ test the VAE model.
-3/ build the PSGAN model.
+Next:3/4
+plan:
+3/5 C-VAE data all prepared.
+3/6-7 check pose estiamtion performation on data. DEBUG  vae
+3/8 train.

@@ -54,40 +54,41 @@ def genClipCsvFile(video_name,clips_array):
     df.to_csv(os.path.join(out_dir,video_name+".csv"),index=None,header=None)
     return video_name
 
-def ClipOriVideo(video_name):
+def ClipOriVideo():
     video_dir = r"D:\download_cache\PMXmodel\VIDEOfile"
-    index_dir = r"D:\download_cache\PMXmodel\CLIPIndex"
+    index_dir = r"D:\download_cache\PMXmodel\finishClip"
     output_dir = r"D:\download_cache\PMXmodel\VIDEOclips"
+    for video_name in os.listdir(index_dir):
+        video_name = video_name.split(".")[0]
+        video_path = os.path.join(video_dir, video_name + ".mp4")
+        clip_index = pd.read_csv(os.path.join(index_dir,video_name+".csv"),header=None)
+        for num,clip in enumerate(clip_index.values.tolist()):
+            # [start frame, end frame]
+            start_f, end_f = clip # e.g. 0, 123
 
-    video_path = os.path.join(video_dir, video_name + ".mp4")
-    clip_index = pd.read_csv(index_dir,video_name+".csv",header=None).values.tolist()
-    for num,clip in enumerate(clip_index):
-        # [start frame, end frame]
-        start_f, end_f = clip # e.g. 0, 123
+            videoCapture = cv2.VideoCapture(video_path)
+            fps = videoCapture.get(cv2.CAP_PROP_FPS)
+            width = (int(videoCapture.get(cv2.CAP_PROP_FRAME_WIDTH)))
+            height = (int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+            size = (width, height)  # 保存视频的大小
 
-        videoCapture = cv2.VideoCapture(video_path)
-        fps = videoCapture.get(cv2.CAP_PROP_FPS)
-        width = (int(videoCapture.get(cv2.CAP_PROP_FRAME_WIDTH)))
-        height = (int(videoCapture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        size = (width, height)  # 保存视频的大小
-
-        videoWriter = cv2.VideoWriter(os.path.join(output_dir,video_name+"_"+str(num)+".avi"), cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
-        i = 0
-        while True:
-            success, frame = videoCapture.read()
-            if success:
-                if i < int(start_f):
-                    i += 1
-                    continue
-                elif (i >= int(start_f) and i <= int(end_f)):
-                    videoWriter.write(frame)
-                    i += 1
+            videoWriter = cv2.VideoWriter(os.path.join(output_dir,video_name+"_"+str(num)+".avi"), cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
+            i = 0
+            while True:
+                success, frame = videoCapture.read()
+                if success:
+                    if i < int(start_f):
+                        i += 1
+                        continue
+                    elif (i >= int(start_f) and i <= int(end_f)):
+                        videoWriter.write(frame)
+                        i += 1
+                    else:
+                        break
                 else:
+                    print("error")
                     break
-            else:
-                print("error")
-                break
-        videoCapture.release()
+            videoCapture.release()
 
 
 
@@ -185,9 +186,10 @@ def main():
 
 
 if __name__=="__main__":
-    # combineTwoVideo_width("D:\download_cache\mmd_combine_pose.avi","D:\download_cache\original.avi","D:\download_cache\compare.avi")
-    clips80 = [[60,90],[390,520],[560,600],[810,910],[1110,1170],[1915,1970],[1980,2045],[2740,2790],[3000,3060],[3120,3202],[3750,4020],[4440,4465]
-               ,[4545,4575],[4620,4671],[5040,5080],[5310,5340]
-               ]
-    genClipCsvFile("dance_80",clips80)
+    combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
+    # clips80 = [[60,90],[390,520],[560,600],[810,910],[1110,1170],[1915,1970],[1980,2045],[2740,2790],[3000,3060],[3120,3202],[3750,4020],[4440,4465]
+    #            ,[4545,4575],[4620,4671],[5040,5080],[5310,5340]
+    #            ]
+    # genClipCsvFile("dance_80",clips80)
     # main()
+    # ClipOriVideo()

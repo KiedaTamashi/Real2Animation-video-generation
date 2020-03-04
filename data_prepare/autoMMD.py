@@ -4,7 +4,16 @@ from selenium.webdriver.common.keys import Keys
 import pandas as pd
 import os
 import time
-import random
+import random,datetime
+def r_string():#生成随机字符串
+    #用时间来做随机播种
+    random.seed(time.time())
+    #随机选取数据
+    if random.randint(0,100)<67:
+        return True
+    else:
+        return False
+
 
 class SimpleCalculatorTests(unittest.TestCase):
     '''
@@ -48,6 +57,9 @@ class SimpleCalculatorTests(unittest.TestCase):
             if os.path.exists(os.path.join(self.clip_index_dir,videofile_+".csv")):
                 if not os.path.exists(vmdfile):
                     continue
+                if not r_string():
+                    time.sleep(1)
+                    continue
                 print(videofile_)
                 clipindex = pd.read_csv(os.path.join(self.clip_index_dir,videofile_+".csv"),header=None)
 
@@ -74,14 +86,14 @@ class SimpleCalculatorTests(unittest.TestCase):
                     #     self.target_dir + Keys.ENTER)
                     # self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'地址')]").send_keys(self.target_dir + Keys.ENTER)
                     self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名')]").send_keys(aviname + Keys.ENTER)
-                    self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'FPS')]").send_keys(Keys.BACKSPACE+Keys.BACKSPACE+str(fr))
+                    # self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'FPS')]").send_keys(Keys.BACKSPACE+Keys.BACKSPACE+str(fr))
                     self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'录制范围')]").send_keys(str(start_frame))
                     self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'至')]").send_keys(str(end_frame))
                     self.driver.find_element_by_xpath("//ComboBox[starts-with(@Name,'视频压缩编码')]").send_keys(Keys.ARROW_UP)
 
 
                     self.driver.find_element_by_xpath("//Button[starts-with(@Name,'确认')]").click()
-                    sleeptime = int((int(end_frame)-int(start_frame))*0.06)+5
+                    sleeptime = int((int(end_frame)-int(start_frame))*0.055)+5
                     time.sleep(sleeptime)
                 # delete
                 self.driver.find_elements_by_xpath("//Button[starts-with(@Name,'刪　除')]")[1].click()
