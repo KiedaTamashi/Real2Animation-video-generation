@@ -91,7 +91,8 @@ def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_s
         return avg_heatmaps
 
 
-def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, save_maps=False, num_kps=16,get_feature=False):
+def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, save_maps=False,
+             num_kps=16,get_feature=False,dataset_mode=False):
     net = net.cuda().eval()
     base_height = 256
     scales = [1]
@@ -109,6 +110,11 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
         result_heatmap_dir = os.path.join(results_folder,"heatmaps")
         if not os.path.exists(result_heatmap_dir):
             os.makedirs(result_heatmap_dir)
+
+    if dataset_mode:
+        pose_dir = os.path.join(results_folder, "pose_dataset")
+        if not os.path.exists(pose_dir):
+            os.mkdir(pose_dir)
 
     for sample_id in range(len(dataset)):
         sample = dataset[sample_id]
@@ -143,6 +149,25 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
                 val[0], val[1] = 'nan', 'nan'
             res_file.write(',{},{}'.format(val[0], val[1]))
         res_file.write('\n')
+
+        if dataset_mode:
+            h,w,_ = img
+            radius = 35
+            pose_img = np.zeros((w, h), np.uint8)
+            for id in range(len(all_keypoints)):
+                keypoint = all_keypoints[id]
+                if keypoint[0] != -1:
+                    # if colors[id] == (255, 0, 0):
+                    #     cv2.circle(img, (int(keypoint[0]), int(keypoint[1])),
+                    #                radius + 2, (255, 0, 0), -1)
+                    # else:
+                    cv2.circle(pose_img, (int(keypoint[0]), int(keypoint[1])),
+                               radius, (255,255,255), -1)
+            img_name = os.path.join(pose_dir, file_name)
+            cv2.imwrite(img_name, img)
+
+
+
 
         if visualize:
             # kpt_names = ['r_ank', 'r_kne', 'r_hip', 'l_hip', 'l_kne', 'l_ank', 'pel', 'spi', 'nec', 'hea',
@@ -180,12 +205,13 @@ if __name__ == '__main__':
     parser.add_argument('--experiment_name', type=str, default='test',
                         help='name of output file with detected keypoints')
     parser.add_argument('--multiscale', action='store_true', help='average inference results over multiple scales')
-    parser.add_argument('--visualize', type=bool, default=True, help='show keypoints')
-    parser.add_argument('--get_feature', type=bool, default=True, help='--get_feature')
+    parser.add_argument('--visualize', type=bool, default=False, help='show keypoints')
+    parser.add_argument('--get_feature', type=bool, default=False, help='--get_feature')
+    parser.add_argument('--dataset_mode', type=bool, default=True, help='generate kps maps dataset for VAE')
     parser.add_argument('--save_maps', action='store_true', help='show keypoints')
     parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_anime_newdata.pth", help='path to the checkpoint')
     parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
-    parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real 21 for anime
+    parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real, 21 for anime
                         help='number of key points')
 
     # parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_real.pth", help='path to the checkpoint')
@@ -205,10 +231,12 @@ if __name__ == '__main__':
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
 
+    order_dataFolder = "D:\download_cache\VAEmodel\MapFrame"
     if data_flag=="real":
         dataset = LipTestDataset(args.dataset_folder)
     else:
-        dataset = AnimeTestDataset(args.dataset_folder)
+        dataset = AnimeTestDataset(order_dataFolder) #TODO I have modified the datasets
 
-    # TODO what we need? the heatmaps or shadow like image.
-    evaluate(dataset, results_folder, net, args.multiscale, args.visualize,args.save_maps,num_kps=args.num_kps,get_feature=args.get_feature)
+    # TODO we need shadow like image.
+    evaluate(dataset, results_folder, net, args.multiscale, args.visualize,args.save_maps,num_kps=args.num_kps,
+             get_feature=args.get_feature,dataset_mode=args.dataset_mode)

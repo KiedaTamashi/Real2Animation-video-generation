@@ -10,7 +10,6 @@ def generate_one_mone():
     one = torch.FloatTensor([1])
     mone = one * -1
 
-
 def get_logger(LOG_ROOT, level=logging.DEBUG, back_count=0,cmd_stream=False):
     """
     :brief  日志记录
@@ -56,7 +55,7 @@ def genClipCsvFile(video_name,clips_array):
 
 def ClipOriVideo():
     video_dir = r"D:\download_cache\PMXmodel\VIDEOfile"
-    index_dir = r"D:\download_cache\PMXmodel\finishClip"
+    index_dir = r"D:\download_cache\PMXmodel\CLIPIndex"
     output_dir = r"D:\download_cache\PMXmodel\VIDEOclips"
     for video_name in os.listdir(index_dir):
         video_name = video_name.split(".")[0]
@@ -186,10 +185,9 @@ def main():
 
 
 if __name__=="__main__":
-    combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
-    # clips80 = [[60,90],[390,520],[560,600],[810,910],[1110,1170],[1915,1970],[1980,2045],[2740,2790],[3000,3060],[3120,3202],[3750,4020],[4440,4465]
-    #            ,[4545,4575],[4620,4671],[5040,5080],[5310,5340]
-    #            ]
-    # genClipCsvFile("dance_80",clips80)
+    # combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
+    clips80 = [[180,325],[710,760],[810,960],[990,1055],[1350,1380],[1575,1590],[2190,2225],[3510,3547]
+               ]
+    genClipCsvFile("dance_65",clips80)
     # main()
     # ClipOriVideo()
