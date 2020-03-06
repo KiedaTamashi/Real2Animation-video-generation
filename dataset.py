@@ -21,9 +21,9 @@ class SkeletonTrainDataset(Dataset):
 
     def __getitem__(self, idx):
         tokens = self.train_labels[idx].split(',') #suggest format [input_real_npy_path, input_condition_path, output_anime_npy_path]
-        real_skeletion = np.load(os.path.join(self._dataset_folder, 'Train', 'inputs', tokens[0]))
-        condition_img = cv2.imread(os.path.join(self._dataset_folder, 'Train', 'conditions', tokens[1]), cv2.IMREAD_COLOR)
-        anime_skeletion = np.load(os.path.join(self._dataset_folder, 'Train', 'gt', tokens[2]))
+        real_skeletion = np.load(os.path.join(self._dataset_folder, 'Train', 'OriPose', tokens[0]))
+        condition_img = cv2.imread(os.path.join(self._dataset_folder, 'MapFrame', tokens[1]), cv2.IMREAD_COLOR)
+        anime_skeletion = np.load(os.path.join(self._dataset_folder, 'Train', 'MapPose', tokens[2]))
         #TODO maybe resize the inputs
         sample = {
             'real': real_skeletion,
@@ -31,7 +31,7 @@ class SkeletonTrainDataset(Dataset):
             'anime':anime_skeletion
         }
         if self._transform:
-            sample = self._transform(sample) #TODO NOT SURE
+            sample = self._transform(sample)
 
         # should be pay attention that pretrain model ResNet's input is 224*224
         # transform = transforms.Compose([
@@ -40,6 +40,7 @@ class SkeletonTrainDataset(Dataset):
         #     transforms.ToTensor()]
         # )
         # normization
+        # TODO not sure whether I should process the input and gt
         image = sample['condition'].astype(np.float32)
         image = (image - 128) / 256 #turn to -0.5~0.5
         sample['condition'] = image.transpose((2, 0, 1)) #C,W,H
@@ -62,10 +63,9 @@ class SkeletonValDataset(Dataset):
 
     def __getitem__(self, idx):
         tokens = self.val_labels[idx].split(',')  # suggest format [input_real_npy_path, input_condition_path, output_anime_npy_path]
-        real_skeletion = np.load(os.path.join(self._dataset_folder, 'Val', 'inputs', tokens[0]))
-        condition_img = cv2.imread(os.path.join(self._dataset_folder, 'Val', 'conditions', tokens[1]),
-                                   cv2.IMREAD_COLOR)
-        anime_skeletion = np.load(os.path.join(self._dataset_folder, 'Val', 'gt', tokens[2]))
+        real_skeletion = np.load(os.path.join(self._dataset_folder, 'Val', 'OriPose', tokens[0]))
+        condition_img = cv2.imread(os.path.join(self._dataset_folder, 'MapFrame', tokens[1]), cv2.IMREAD_COLOR)
+        anime_skeletion = np.load(os.path.join(self._dataset_folder, 'Val', 'MapPose', tokens[2]))
         # TODO maybe resize the inputs
         sample = {
             'real': real_skeletion,

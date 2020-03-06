@@ -142,18 +142,19 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
         for kpt_idx in range(num_kps):
             all_keypoints.append(extract_keypoints(avg_heatmaps[:, :, kpt_idx]))
 
-        res_file.write('{}'.format(file_name))
-        for id in range(num_kps):
-            val = [int(all_keypoints[id][0]), int(all_keypoints[id][1])]
-            if val[0] == -1:
-                val[0], val[1] = 'nan', 'nan'
-            res_file.write(',{},{}'.format(val[0], val[1]))
-        res_file.write('\n')
+        if not dataset_mode:
+            res_file.write('{}'.format(file_name))
+            for id in range(num_kps):
+                val = [int(all_keypoints[id][0]), int(all_keypoints[id][1])]
+                if val[0] == -1:
+                    val[0], val[1] = 'nan', 'nan'
+                res_file.write(',{},{}'.format(val[0], val[1]))
+            res_file.write('\n')
 
         if dataset_mode:
-            h,w,_ = img
-            radius = 35
-            pose_img = np.zeros((w, h), np.uint8)
+            h,w,_ = img.shape
+            radius = 10
+            pose_img = np.zeros((h, w), np.uint8)
             for id in range(len(all_keypoints)):
                 keypoint = all_keypoints[id]
                 if keypoint[0] != -1:
@@ -164,10 +165,7 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
                     cv2.circle(pose_img, (int(keypoint[0]), int(keypoint[1])),
                                radius, (255,255,255), -1)
             img_name = os.path.join(pose_dir, file_name)
-            cv2.imwrite(img_name, img)
-
-
-
+            cv2.imwrite(img_name, pose_img)
 
         if visualize:
             # kpt_names = ['r_ank', 'r_kne', 'r_hip', 'l_hip', 'l_kne', 'l_ank', 'pel', 'spi', 'nec', 'hea',
@@ -209,7 +207,7 @@ if __name__ == '__main__':
     parser.add_argument('--get_feature', type=bool, default=False, help='--get_feature')
     parser.add_argument('--dataset_mode', type=bool, default=True, help='generate kps maps dataset for VAE')
     parser.add_argument('--save_maps', action='store_true', help='show keypoints')
-    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_anime_newdata.pth", help='path to the checkpoint')
+    parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_anime_47.pth", help='path to the checkpoint')
     parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
     parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real, 21 for anime
                         help='number of key points')
@@ -230,12 +228,12 @@ if __name__ == '__main__':
     results_folder = 'test_results/{}{}_test'.format(args.experiment_name, date)
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
-
-    order_dataFolder = "D:\download_cache\VAEmodel\MapFrame"
+    ori_dataFolder = "D:\download_cache\VAEmodel\OriFrame"
+    map_dataFolder = "D:\download_cache\VAEmodel\MapFrame"
     if data_flag=="real":
-        dataset = LipTestDataset(args.dataset_folder)
+        dataset = LipTestDataset(ori_dataFolder)
     else:
-        dataset = AnimeTestDataset(order_dataFolder) #TODO I have modified the datasets
+        dataset = AnimeTestDataset(map_dataFolder) #TODO I have modified the datasets
 
     # TODO we need shadow like image.
     evaluate(dataset, results_folder, net, args.multiscale, args.visualize,args.save_maps,num_kps=args.num_kps,

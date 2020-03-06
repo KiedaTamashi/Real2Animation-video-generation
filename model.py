@@ -17,7 +17,7 @@ import sys
 sys.path.append(os.getcwd())
 
 
-# ==================Definition Start - Stage 1======================
+# ==================Definition Start - Stage 2======================
 
 
 class skeletonVAE(ptl.LightningModule):
@@ -281,12 +281,7 @@ class skeletonVAE(ptl.LightningModule):
         transform = transforms.Compose([transforms.Resize(256),
                                         transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))])
-        dataset = SkeletonTrainDataset(
-            self.hparams.dataset_folder,
-            None,
-            None,
-            transform=transform) if train else SkeletonValDataset(
-            self.hparams.dataset_folder)  # TODO hparams input
+        dataset = SkeletonTrainDataset(self.hparams.dataset_folder,None,None,transform=transform) if train else SkeletonValDataset(self.hparams.dataset_folder)  # TODO hparams input
 
         # when using multi-node (ddp) we need to add the  datasampler
         train_sampler = None
@@ -333,12 +328,12 @@ class skeletonVAE(ptl.LightningModule):
         #                  cond_f_dims=128,block=BasicBlock
         # param overwrites
         # parser.set_defaults(gradient_clip_val=5.0)
-        # TODO change params
+        # TODO change params now we use black-white map
         # network params
         # namely, input num of key points
-        parser.add_argument('--in_channels', default=18, type=int)
+        parser.add_argument('--in_channels', default=1, type=int)
         # namely, output num of key points
-        parser.add_argument('--out_channels', default=21, type=int)
+        parser.add_argument('--out_channels', default=1, type=int)
         # use 500 for CPU, 50000 for GPU to see speed difference
         parser.add_argument(
             '--hidden_dims',
@@ -364,7 +359,7 @@ class skeletonVAE(ptl.LightningModule):
         parser.add_argument('--cond_f_dims', default=128, type=int)
         parser.add_argument(
             '--dataset_folder',
-            default="datasets",
+            default="D:/download_cache/VAEmodel",
             type=str,
             help="upper folder for train and val data")
         parser.add_argument(
@@ -378,7 +373,7 @@ class skeletonVAE(ptl.LightningModule):
         parser.add_argument('--batch_size', default=16, type=int)
         return parser
 
-# ==================Definition Start - Stage 12======================
+# ==================Definition Start - Stage 3======================
 
 
 class Generator(nn.Module):

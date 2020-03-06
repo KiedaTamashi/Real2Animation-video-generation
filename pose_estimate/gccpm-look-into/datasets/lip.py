@@ -117,12 +117,12 @@ class LipTestDataset(Dataset):
     def __init__(self, dataset_folder):
         super().__init__()
         self._dataset_folder = dataset_folder
-        self._names = [line.rstrip('\n') for line in open(os.path.join(self._dataset_folder, 'Testing_images', 'test_id.txt'), 'r')]
+        self._names = [line.rstrip('\n') for line in open(os.path.join(self._dataset_folder, 'test_id.txt'), 'r')]
 
     def __getitem__(self, id):
         # name = '{}.jpg'.format(self._names[id])
         name = self._names[id]
-        img = cv2.imread(os.path.join(self._dataset_folder, 'Testing_images', 'testing_images', name))
+        img = cv2.imread(os.path.join(self._dataset_folder, name))
         sample = {
             'image': img,
             'file_name': name
