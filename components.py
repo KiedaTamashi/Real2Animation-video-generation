@@ -5,40 +5,30 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.nn as nn
 
-from model import Generator,Discriminator
-import time
-import numpy as np
-
-import tflib as lib
-import tflib.save_images
-import tflib.mnist
-import tflib.plot
-
 torch.manual_seed(1)
 if ~torch.cuda.is_available():
     args.use_cuda = False
-
 use_cuda = args.use_cuda
-
-
-# test components TODO fit the modified model
-def generate_image(frame, netG):
-    #TODO change model G pipeline.
-    lib.print_model_settings(locals().copy())
-    noise = torch.randn(args.batch_size, 128)
-    if use_cuda:
-        noise = noise.cuda(args.gpu)
-    noisev = autograd.Variable(noise, volatile=True)
-    samples = netG(noisev)
-    samples = samples.view(args.batch_size, 28, 28)
-    # print samples.size()
-
-    samples = samples.cpu().data.numpy()
-
-    lib.save_images.save_images(
-        samples,
-        'tmp/mnist/samples_{}.png'.format(frame)
-    )
+# import tflib as lib
+# import tflib.save_images
+# import tflib.mnist
+# import tflib.plot
+# def generate_image(frame, netG):
+#     lib.print_model_settings(locals().copy())
+#     noise = torch.randn(args.batch_size, 128)
+#     if use_cuda:
+#         noise = noise.cuda(args.gpu)
+#     noisev = autograd.Variable(noise, volatile=True)
+#     samples = netG(noisev)
+#     samples = samples.view(args.batch_size, 28, 28)
+#     # print samples.size()
+#
+#     samples = samples.cpu().data.numpy()
+#
+#     lib.save_images.save_images(
+#         samples,
+#         'tmp/mnist/samples_{}.png'.format(frame)
+#     )
 
 
 
@@ -91,34 +81,5 @@ class FeatureExtractor(nn.Module):
             if name in self.extracted_layers:
                 outputs.append(x)
 
-class BasicBlock(nn.Module):
-    expansion = 1
-    #inplanes其实就是channel,叫法不同
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.downsample = downsample
-        self.stride = stride
 
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        #把shortcut那的channel的维度统一
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
-        return out
 

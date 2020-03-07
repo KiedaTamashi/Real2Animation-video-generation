@@ -21,17 +21,20 @@ class SkeletonTrainDataset(Dataset):
 
     def __getitem__(self, idx):
         tokens = self.train_labels[idx].split(',') #suggest format [input_real_npy_path, input_condition_path, output_anime_npy_path]
-        real_skeletion = np.load(os.path.join(self._dataset_folder, 'Train', 'OriPose', tokens[0]))
-        condition_img = cv2.imread(os.path.join(self._dataset_folder, 'MapFrame', tokens[1]), cv2.IMREAD_COLOR)
-        anime_skeletion = np.load(os.path.join(self._dataset_folder, 'Train', 'MapPose', tokens[2]))
+        real_skeletion = cv2.imread(os.path.join(self._dataset_folder, 'Train', 'OriPose', tokens[0]),cv2.IMREAD_GRAYSCALE)
+        condition_img = cv2.imread(os.path.join(self._dataset_folder, 'MapFrame', tokens[2]), cv2.IMREAD_COLOR)
+        anime_skeletion = cv2.imread(os.path.join(self._dataset_folder, 'Train', 'MapPose', tokens[1]),cv2.IMREAD_GRAYSCALE)
         #TODO maybe resize the inputs
+        if self._transform:
+            real_skeletion = self._transform(real_skeletion)
+            condition_img = self._transform(condition_img)
+            anime_skeletion = self._transform(anime_skeletion)
         sample = {
             'real': real_skeletion,
             'condition': condition_img,
             'anime':anime_skeletion
         }
-        if self._transform:
-            sample = self._transform(sample)
+
 
         # should be pay attention that pretrain model ResNet's input is 224*224
         # transform = transforms.Compose([
@@ -41,9 +44,8 @@ class SkeletonTrainDataset(Dataset):
         # )
         # normization
         # TODO not sure whether I should process the input and gt
-        image = sample['condition'].astype(np.float32)
-        image = (image - 128) / 256 #turn to -0.5~0.5
-        sample['condition'] = image.transpose((2, 0, 1)) #C,W,H
+        # image = sample['condition']
+        # sample['condition'] = image.transpose((2, 0, 1)) #C,W,H
         return sample
 
     def __len__(self):
@@ -52,9 +54,10 @@ class SkeletonTrainDataset(Dataset):
 #TODO use dataset.imagefoloder rewrite
 
 class SkeletonValDataset(Dataset):
-    def __init__(self, dataset_folder, num_images=-1):
+    def __init__(self, dataset_folder, transform=None,num_images=-1):
         # input should be heatmaps or skeleton image, output should be also heatmaps or skeleton image
         super().__init__()
+        self._transform = transform
         self._dataset_folder = dataset_folder
         self.index_path = os.path.join(self._dataset_folder, 'Val', 'index.csv')
         self.val_labels = [line.rstrip('\n') for line in open(self.index_path, 'r')]
@@ -63,19 +66,27 @@ class SkeletonValDataset(Dataset):
 
     def __getitem__(self, idx):
         tokens = self.val_labels[idx].split(',')  # suggest format [input_real_npy_path, input_condition_path, output_anime_npy_path]
-        real_skeletion = np.load(os.path.join(self._dataset_folder, 'Val', 'OriPose', tokens[0]))
-        condition_img = cv2.imread(os.path.join(self._dataset_folder, 'MapFrame', tokens[1]), cv2.IMREAD_COLOR)
-        anime_skeletion = np.load(os.path.join(self._dataset_folder, 'Val', 'MapPose', tokens[2]))
+        real_skeletion = cv2.imread(os.path.join(self._dataset_folder, 'Val', 'OriPose', tokens[0]), cv2.IMREAD_GRAYSCALE)
+        condition_img = cv2.imread(os.path.join(self._dataset_folder, 'MapFrame', tokens[2]), cv2.IMREAD_COLOR)
+        anime_skeletion = cv2.imread(os.path.join(self._dataset_folder, 'Val', 'MapPose', tokens[1]), cv2.IMREAD_GRAYSCALE)
+        if self._transform:
+            real_skeletion = self._transform(real_skeletion)
+            condition_img = self._transform(condition_img)
+            anime_skeletion = self._transform(anime_skeletion)
+
         # TODO maybe resize the inputs
         sample = {
             'real': real_skeletion,
             'condition': condition_img,
             'anime': anime_skeletion
         }
+
         # normization
         # image = sample['condition'].astype(np.float32)
         # image = (image - 128) / 256  # turn to -0.5~0.5
         # sample['condition'] = image.transpose((2, 0, 1))  # C,W,H
+        # image = sample['condition']
+        # sample['condition'] = image.transpose(0,2).transpose(1,2)  # C,W,H
         return sample
 
     def __len__(self):

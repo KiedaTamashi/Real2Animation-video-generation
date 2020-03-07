@@ -1,9 +1,7 @@
-import model
 from pipeline import *
 
-
 def main():
-    pass
+    skeleton_learning()
 
 
 if __name__=="__main__":

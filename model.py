@@ -17,12 +17,44 @@ import sys
 sys.path.append(os.getcwd())
 
 
+class BasicBlock(nn.Module):
+    expansion = 1
+    #inplanes其实就是channel,叫法不同
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(BasicBlock, self).__init__()
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        residual = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        #把shortcut那的channel的维度统一
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
+block = BasicBlock
 # ==================Definition Start - Stage 2======================
 
-
 class skeletonVAE(ptl.LightningModule):
-    def __init__(self, block=BasicBlock):
+    def __init__(self,args):
         super(skeletonVAE, self).__init__()
+
+        self.hparams = args
         self.train_batch_nb = self.hparams.batch_size
         self.vaL_batch_nb = 1
         self.latent_dim = self.hparams.latent_dim
@@ -32,8 +64,9 @@ class skeletonVAE(ptl.LightningModule):
         self.input_size = self.hparams.input_size
         self.cond_size = self.hparams.cond_size
         in_channels = self.hparams.in_channels
+        hidden_dims = self.hparams.hidden_dims
+        extract_layers = self.hparams.extract_layers
 
-        # TODO it may be better to preprocess condition and input as same size.
         # input is C,H*W, make the size same by Linear
         self.res_in_channels = 64
         self.embed_condition = nn.Linear(
@@ -41,9 +74,9 @@ class skeletonVAE(ptl.LightningModule):
         # this is for feature fusion
         self.embed_data = nn.Conv2d(in_channels, in_channels, kernel_size=1)
 
-        if self.hparams.hidden_dims is None:
-            hidden_dims = [32, 64, 128, 256, 512]
-        if self.hparams.extract_layers is None:
+        if hidden_dims == 0:
+            hidden_dims = [16, 32, 64, 128, 256, 512] # TODO need to be finetuned
+        if extract_layers == 0:
             extract_layers = [2, 2, 2, 2]  # for condition feature extractor
         enc_in_channels = in_channels + 1  # add condition embeded
         ##########  encoder, img_size/2 for each conv, but feature_num *2 #####
@@ -59,24 +92,19 @@ class skeletonVAE(ptl.LightningModule):
             enc_in_channels = h_dim
 
         self.encoder = nn.Sequential(*modules)
-        # TODO here is default 256. 256/64=4
-        self.fc_mu = nn.Linear(hidden_dims[-1] * 4, self.latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1] * 4, self.latent_dim)
+        self.fcFactor = int(math.pow(self.input_size/(2**len(hidden_dims)),2))
+        self.fc_mu = nn.Linear(hidden_dims[-1] * self.fcFactor, self.latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1] * self.fcFactor, self.latent_dim)
 
         ######### decoder #########
         modules = []
         self.decoder_input = nn.Linear(
-            self.latent_dim + self.cond_f_dims, hidden_dims[-1] * 4)
+            self.latent_dim + self.cond_f_dims, hidden_dims[-1] * self.fcFactor)
+        self.dec_hidden_dim = hidden_dims[-1]
         hidden_dims.reverse()  # list order reverse.
         for i in range(len(hidden_dims) - 1):
             modules.append(
-                nn.Sequential(
-                    nn.ConvTranspose2d(hidden_dims[i],
-                                       hidden_dims[i + 1],
-                                       kernel_size=3,
-                                       stride=2,
-                                       padding=1,
-                                       output_padding=1),
+                nn.Sequential(nn.ConvTranspose2d(hidden_dims[i],hidden_dims[i + 1],kernel_size=3,stride=2,padding=1,output_padding=1),
                     nn.BatchNorm2d(hidden_dims[i + 1]),
                     nn.LeakyReLU())
             )
@@ -92,43 +120,24 @@ class skeletonVAE(ptl.LightningModule):
                                output_padding=1),
             nn.BatchNorm2d(hidden_dims[-1]),
             nn.LeakyReLU(),
-            nn.Conv2d(hidden_dims[-1], out_channels=3,
+            nn.Conv2d(hidden_dims[-1], out_channels=1,
                       kernel_size=3, padding=1),
             nn.Tanh()
         )
 
         ########### feature extractor for condition image #########
         af_size = math.ceil(self.cond_size / 32 - 7 + 1)
-        self.feature_extracter = nn.Sequential(
-            nn.Conv2d(
-                3,
-                64,
-                kernel_size=7,
-                stride=2,
-                padding=3,
-                bias=False),
+        self.feature_extracter = nn.Sequential(nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
             # size/2
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),  # size/2
             self._make_layer(block, 64, extract_layers[0]),
-            self._make_layer(
-                block,
-                128,
-                extract_layers[1],
-                stride=2),
+            self._make_layer(block,128,extract_layers[1],stride=2),
             # size/2
-            self._make_layer(
-                block,
-                256,
-                extract_layers[2],
-                stride=2),
+            self._make_layer(block,256,extract_layers[2],stride=2),
             # size/2
-            self._make_layer(
-                block,
-                512,
-                extract_layers[2],
-                stride=2),
+            self._make_layer(block,512,extract_layers[3],stride=2),
             # size/2
             nn.AvgPool2d(7, stride=1),
         )
@@ -143,20 +152,33 @@ class skeletonVAE(ptl.LightningModule):
         # here is flatten for c,w*h, then conv, relu
 
         cond_vector = self.feature_extract(c)  # maybe 64 or 128
-        embedded_condition = self.embed_condition(cond_vector)
+        embedded_condition = self.embed_condition(cond_vector) # bn,cond_dim -> bn, input_size*input*size
         embedded_condition = embedded_condition.view(
-            -1, self.input_size, self.input_size).unsqueeze(1)
+            -1, self.input_size, self.input_size).unsqueeze(1) # bn, input_size*input*size -> bn, 1, input_size, input_size
         embedded_input = self.embed_data(x)
 
         x_ = torch.cat([embedded_input, embedded_condition],
-                       dim=1)  # concat on channel dim
+                       dim=1)  # concat on channel dim. bn, 2, input_size, input_size
 
         mu, log_var = self.encode(x_)
 
         z = self.reparameterize(mu, log_var)
-
         z = torch.cat([z, cond_vector], dim=1)  # TODO data augment
-        return [self.decode(z), mu, log_var]
+        output = self.decode(z)
+        return [output, mu, log_var]
+
+    def decode(self, z):
+        '''
+        forward subpart. decodes the latent variable+condition to output
+        :param z:  bn, 2*cond_dim
+        :return:
+        '''
+        dec_input = self.decoder_input(z)
+        rsln = int(math.sqrt(self.fcFactor))
+        dec_input = dec_input.view(-1, self.dec_hidden_dim, rsln, rsln)
+        dec_feature = self.decoder(dec_input)
+        output = self.final_layer(dec_feature)
+        return output
 
     def encode(self, x):
         '''
@@ -166,7 +188,7 @@ class skeletonVAE(ptl.LightningModule):
         '''
         result = self.encoder(x)
         # [N x C x H x W] -> [N,CHW]
-        result = torch.flatten(result, start_dim=1)
+        result = torch.flatten(result, start_dim=1)  # bn, 2^5
 
         # Split the result into mu and var components
         # of the latent Gaussian distribution
@@ -237,17 +259,17 @@ class skeletonVAE(ptl.LightningModule):
         return loss, recons_loss, -kld_loss
 
     def training_step(self, batch, batch_nb):
-        x, c, y = batch
+        x, c, y = batch['real'],batch['condition'],batch['anime']
         y_hat, mu, log_var = self.forward(x, c)
         infer_out = [y_hat, mu, log_var]
         loss, recons_loss, kld_loss = self.my_loss(infer_out, y)
         return {
-            'Train_loss': loss,
+            'loss': loss,
             'Train_Reconstruction_Loss': recons_loss,
             'Train_KLD': -kld_loss}
 
     def validation_step(self, batch, batch_nb):
-        x, c, y = batch
+        x, c, y = batch['real'],batch['condition'],batch['anime']
         y_hat, mu, log_var = self.forward(x, c)
         infer_out = [y_hat, mu, log_var]
         loss, recons_loss, kld_loss = self.my_loss(infer_out, y)
@@ -268,20 +290,18 @@ class skeletonVAE(ptl.LightningModule):
 
     def configure_optimizers(self):
         # TODO if we want to finetune, add para.requires_grad = False in the
-        # separent part of model
-        return [
-            torch.optim.Adam(
-                filter(
-                    lambda p: p.requires_grad,
-                    self.parameters()),
-                lr=self.hparams.lr)]
+        # separent part of model    :  lambda p: p.requires_grad,self.parameters()
+        return torch.optim.Adam(self.parameters(), lr=self.hparams.lr_vae)
 
     def __dataloader(self, train):
         # init data generators
-        transform = transforms.Compose([transforms.Resize(256),
+        transform = transforms.Compose([transforms.ToPILImage(),
+                                        transforms.Resize((256,256)),
                                         transforms.ToTensor(),
-                                        transforms.Normalize((0.5,), (1.0,))])
-        dataset = SkeletonTrainDataset(self.hparams.dataset_folder,None,None,transform=transform) if train else SkeletonValDataset(self.hparams.dataset_folder)  # TODO hparams input
+                                        transforms.Normalize((0.5,), (1.0,))
+                                        ])
+        dataset = SkeletonTrainDataset(self.hparams.dataset_vae,None,None,transform=transform) if train \
+            else SkeletonValDataset(self.hparams.dataset_vae,transform)  # TODO hparams input
 
         # when using multi-node (ddp) we need to add the  datasampler
         train_sampler = None
@@ -316,62 +336,15 @@ class skeletonVAE(ptl.LightningModule):
         log.info('Test data loader called.')
         return self.__dataloader(train=False)
 
-    @staticmethod
-    def add_model_specific_args(parent_parser):  # pragma: no cover
-        """
-        Parameters you define here will be available to your model through self.hparams
-        :param parent_parser:
-        :return:
-        """
-        parser = ArgumentParser(parents=[parent_parser])
-        # hparams: in_channels,out_channels,latent_dim,hidden_dims,extract_layers,input_size,cond_size, kld_loss_weight,
-        #                  cond_f_dims=128,block=BasicBlock
-        # param overwrites
-        # parser.set_defaults(gradient_clip_val=5.0)
-        # TODO change params now we use black-white map
-        # network params
-        # namely, input num of key points
-        parser.add_argument('--in_channels', default=1, type=int)
-        # namely, output num of key points
-        parser.add_argument('--out_channels', default=1, type=int)
-        # use 500 for CPU, 50000 for GPU to see speed difference
-        parser.add_argument(
-            '--hidden_dims',
-            default=None,
-            type=int)  # default [32,64,128,256,512]
-        parser.add_argument(
-            '--latent_dim',
-            default=128,
-            type=int)  # 128 or 256 not sure
-        parser.add_argument(
-            '--extract_layers',
-            default=None,
-            type=int)  # default [2,2,2,2]
-        # input_size of heatmap or skeleton
-        parser.add_argument('--input_size', default=256, type=int)
-        parser.add_argument(
-            '--cond_size',
-            default=256,
-            type=int)  # condition img size
-        # not sure how to set weights between KLd and recon loss
-        parser.add_argument('--kld_loss_weight', default=0.2, type=float)
-        # dims of feature extractor for cond images
-        parser.add_argument('--cond_f_dims', default=128, type=int)
-        parser.add_argument(
-            '--dataset_folder',
-            default="D:/download_cache/VAEmodel",
-            type=str,
-            help="upper folder for train and val data")
-        parser.add_argument(
-            '--transformer_flag',
-            default=True,
-            type=bool,
-            help="whether to use transformer")
-
-        # training params (opt)
-        parser.add_argument('--optimizer_name', default='adam', type=str)
-        parser.add_argument('--batch_size', default=16, type=int)
-        return parser
+    # @staticmethod
+    # def add_model_specific_args():  # pragma: no cover
+    #     """
+    #     Parameters you define here will be available to your model through self.hparams
+    #     :param parent_parser:
+    #     :return:
+    #     """
+    #     parser = ArgumentParser()
+    #     return parser
 
 # ==================Definition Start - Stage 3======================
 

@@ -8,15 +8,15 @@ import logging,os
 # TODO wait for rewrite, we may need a complex datasets, make it a class
 # hparams: in_channels,out_channels,latent_dim,hidden_dims,extract_layers,input_size,cond_size, kld_loss_weight,
 #                  cond_f_dims=128,block=BasicBlock
-def skeleton_learning(args):
-    skeleton_model = skeletonVAE()  # block = Basicblock, Detailed args in model's own parser
-    trainer = Trainer(max_epochs=args.epochs, gpus=[0])
+def skeleton_learning():
+    skeleton_model = skeletonVAE(args)  # block = Basicblock
+    trainer = Trainer(max_epochs=args.epochs, gpus=0,logger=True,val_check_interval=5) #TODO if the args have None, then logger cannot work
     trainer.fit(skeleton_model)
     # view tensorboard logs
     logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
     logging.info('and going to http://localhost:6006 on your browser')
 
-
+'''
 def GAN_pipeline():
     def inf_train_gen():
         while True:
@@ -135,3 +135,4 @@ def GAN_pipeline():
             lib.plot.flush()
 
         lib.plot.tick()
+'''
