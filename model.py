@@ -1,4 +1,4 @@
-from dataset import SkeletonTrainDataset, SkeletonValDataset
+from dataset import SkeletonTrainDataset, SkeletonValDataset,SkeletonTestDataset
 from torch.utils.data.distributed import DistributedSampler
 from collections import OrderedDict
 from argparse import ArgumentParser
@@ -263,10 +263,13 @@ class skeletonVAE(ptl.LightningModule):
         y_hat, mu, log_var = self.forward(x, c)
         infer_out = [y_hat, mu, log_var]
         loss, recons_loss, kld_loss = self.my_loss(infer_out, y)
-        return {
-            'loss': loss,
-            'Train_Reconstruction_Loss': recons_loss,
-            'Train_KLD': -kld_loss}
+        tensorboard_logs = {'Train_avg_loss': loss,'Train_Reconstruction_Loss': recons_loss, 'Train_KLD': -kld_loss}
+        return {'loss': loss, 'log': tensorboard_logs}
+        #
+        # return {
+        #     'loss': loss,
+        #     'Train_Reconstruction_Loss': recons_loss,
+        #     'Train_KLD': -kld_loss}
 
     def validation_step(self, batch, batch_nb):
         x, c, y = batch['real'],batch['condition'],batch['anime']
@@ -274,43 +277,62 @@ class skeletonVAE(ptl.LightningModule):
         infer_out = [y_hat, mu, log_var]
         loss, recons_loss, kld_loss = self.my_loss(infer_out, y)
         return {
-            'Val_loss': loss,
-            'Val_Reconstruction_Loss': recons_loss,
-            'Val_KLD': -kld_loss}
+            'val_loss': loss,
+            'val_Reconstruction_Loss': recons_loss,
+            'val_KLD': -kld_loss}
 
     def validation_end(self, outputs):
-        avg_loss = torch.stack([x['Val_loss'] for x in outputs]).mean()
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         avg_recon_loss = torch.stack(
-            [x['Val_Reconstruction_Loss'] for x in outputs]).mean()
-        avg_kld_loss = torch.stack([x['Val_KLD'] for x in outputs]).mean()
-        return {
-            'avg_val_loss': avg_loss,
-            'avg_val_recon_Loss': avg_recon_loss,
-            'avg_val_KLD': -avg_kld_loss}
+            [x['val_Reconstruction_Loss'] for x in outputs]).mean()
+        avg_kld_loss = torch.stack([x['val_KLD'] for x in outputs]).mean()
+        tensorboard_logs = {'val_avg_loss': avg_loss, 'val_Recon_Loss': avg_recon_loss, 'val_KLD': -avg_kld_loss}
+        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
+        # return {
+        #     'avg_val_loss': avg_loss,
+        #     'avg_val_recon_Loss': avg_recon_loss,
+        #     'avg_val_KLD': -avg_kld_loss}
+
+    def test_step(self, batch, batch_nb):
+        name, x, c = batch['name'], batch['real'], batch['condition']
+        infer_out, _, _ = self.forward(x, c)
+        return {'output': infer_out, 'name':name}
+
+    def test_end(self, outputs):
+        import cv2
+        [cv2.imwrite(os.path.join(self.hparams.dataset_vae, 'Output', x['name']), x['output']) for x in outputs]
+        return
+
 
     def configure_optimizers(self):
         # TODO if we want to finetune, add para.requires_grad = False in the
         # separent part of model    :  lambda p: p.requires_grad,self.parameters()
         return torch.optim.Adam(self.parameters(), lr=self.hparams.lr_vae)
 
-    def __dataloader(self, train):
+    def __dataloader(self, train, infer=False):
         # init data generators
         transform = transforms.Compose([transforms.ToPILImage(),
                                         transforms.Resize((256,256)),
                                         transforms.ToTensor(),
                                         transforms.Normalize((0.5,), (1.0,))
                                         ])
-        dataset = SkeletonTrainDataset(self.hparams.dataset_vae,None,None,transform=transform) if train \
-            else SkeletonValDataset(self.hparams.dataset_vae,transform)  # TODO hparams input
+        if infer:
+            dataset = SkeletonTestDataset(self.hparams.dataset_vae,transform=transform)
+        elif train:
+            dataset = SkeletonTrainDataset(self.hparams.dataset_vae,None,None,transform=transform)
+        else:
+            dataset = SkeletonValDataset(self.hparams.dataset_vae,transform)
+        # TODO whether we should transform back, here I consider that we keep the 256*256 then use it in the next train stage. Finally we transform back?
 
         # when using multi-node (ddp) we need to add the  datasampler
         train_sampler = None
-        batch_size = self.hparams.batch_size
+        batch_size = self.hparams.batch_size if not infer else 1
 
         if self.use_ddp:
             train_sampler = DistributedSampler(dataset)
 
         should_shuffle = train_sampler is None
+        if infer: should_shuffle = False
         loader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
@@ -334,7 +356,7 @@ class skeletonVAE(ptl.LightningModule):
     @ptl.data_loader
     def test_dataloader(self):
         log.info('Test data loader called.')
-        return self.__dataloader(train=False)
+        return self.__dataloader(train=False,infer=True)
 
     # @staticmethod
     # def add_model_specific_args():  # pragma: no cover

@@ -32,7 +32,7 @@ parser.add_argument('--kld_loss_weight', default=0.2, type=float)
 parser.add_argument('--cond_f_dims', default=128, type=int)
 parser.add_argument('--dataset_vae', default="D:/download_cache/VAEmodel", type=str, help="upper folder for train and val data")
 parser.add_argument('--transformer_flag', default=True, type=bool, help="whether to use transformer")
-
+# parser.add_argument('--infer_mode', default=False, type=bool, help="Only to use when the model is developed.")
 # training params (opt)
 parser.add_argument('--optimizer_name', default='adam', type=str)
 parser.add_argument('--batch_size', default=32, type=int)

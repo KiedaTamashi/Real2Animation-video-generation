@@ -186,9 +186,8 @@ def main():
 
 if __name__=="__main__":
     # combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
-    clips80 = [[90,165],[285,360],[630,690],[750,840],[900,945],[1040,1080],[1225,1320],[1380,1410],[1770,1880],[2005,2160],[2790,2880],
-               [3125,3200],[3900,3960],[4680,4765]
+    clips80 = [[150,225],[710,765],[960,978],[1120,1170],[1200,1262],[1413,1455],[1530,1570],[1800,1860],[2100,2160],[2670,2710],[3240.3295]
                ]
-    genClipCsvFile("dance_64",clips80)
+    genClipCsvFile("dance_58",clips80)
     # main()
     # ClipOriVideo()

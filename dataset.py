@@ -69,18 +69,16 @@ class SkeletonValDataset(Dataset):
         real_skeletion = cv2.imread(os.path.join(self._dataset_folder, 'Val', 'OriPose', tokens[0]), cv2.IMREAD_GRAYSCALE)
         condition_img = cv2.imread(os.path.join(self._dataset_folder, 'MapFrame', tokens[2]), cv2.IMREAD_COLOR)
         anime_skeletion = cv2.imread(os.path.join(self._dataset_folder, 'Val', 'MapPose', tokens[1]), cv2.IMREAD_GRAYSCALE)
+        # resize the inputs now TODO not sure whether it is correct
         if self._transform:
             real_skeletion = self._transform(real_skeletion)
             condition_img = self._transform(condition_img)
             anime_skeletion = self._transform(anime_skeletion)
-
-        # TODO maybe resize the inputs
         sample = {
             'real': real_skeletion,
             'condition': condition_img,
             'anime': anime_skeletion
         }
-
         # normization
         # image = sample['condition'].astype(np.float32)
         # image = (image - 128) / 256  # turn to -0.5~0.5
@@ -91,3 +89,35 @@ class SkeletonValDataset(Dataset):
 
     def __len__(self):
         return len(self.val_labels)
+
+class SkeletonTestDataset(Dataset):
+    def __init__(self, dataset_folder, transform=None):
+        # input should be heatmaps or skeleton image, output should be also heatmaps or skeleton image
+        super().__init__()
+        self._transform = transform
+        self._dataset_folder = dataset_folder
+        self._names = os.listdir(os.path.join(self._dataset_folder, 'Test','Input'))
+        # TODO now for test, we only have 1 condition image endwith '.jpg'
+        self._condition = ['condition.jpg'] * len(self._names)
+
+
+    def __getitem__(self, id):
+        x_name = self._names[id]
+        c_name = self._condition[id]
+
+        real_skeletion = cv2.imread(os.path.join(self._dataset_folder, x_name), cv2.IMREAD_GRAYSCALE)
+        condition_img = cv2.imread(os.path.join(self._dataset_folder, c_name), cv2.IMREAD_COLOR)
+        if self._transform:
+            real_skeletion = self._transform(real_skeletion)
+            condition_img = self._transform(condition_img)
+
+        # TODO maybe resize the inputs
+        sample = {
+            'name': x_name,
+            'real': real_skeletion,
+            'condition': condition_img,
+        }
+        return sample
+
+    def __len__(self):
+        return len(self.self._names)
