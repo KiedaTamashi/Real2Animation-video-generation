@@ -52,7 +52,10 @@ class SimpleCalculatorTests(unittest.TestCase):
             # for each video, costing 224s
             videofile_,pmxfile_,fr,frames = pmx
             pmxfile_ = str(pmxfile_)
-            pmxfile = self.base_dir+"\PMXfile\\"+pmxfile_+"\\"+pmxfile_+".pmx"
+            if pmxfile_=="pmdfile1":
+                pmxfile = self.base_dir+"\PMXfile\\"+pmxfile_+"\\"+pmxfile_+".pmd"
+            else:
+                pmxfile = self.base_dir+"\PMXfile\\"+pmxfile_+"\\"+pmxfile_+".pmx"
             vmdfile = self.base_dir + "\VMDfile\\" + videofile_+"_"+pmxfile_+".vmd"
             if os.path.exists(os.path.join(self.clip_index_dir,videofile_+".csv")):
                 if not os.path.exists(vmdfile):

@@ -55,7 +55,7 @@ def genClipCsvFile(video_name,clips_array):
 
 def ClipOriVideo():
     video_dir = r"D:\download_cache\PMXmodel\VIDEOfile"
-    index_dir = r"D:\download_cache\PMXmodel\CLIPIndex"
+    index_dir = r"D:\download_cache\PMXmodel\finishClip"
     output_dir = r"D:\download_cache\PMXmodel\VIDEOclips"
     for video_name in os.listdir(index_dir):
         video_name = video_name.split(".")[0]
@@ -186,8 +186,9 @@ def main():
 
 if __name__=="__main__":
     # combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
-    clips80 = [[150,225],[710,765],[960,978],[1120,1170],[1200,1262],[1413,1455],[1530,1570],[1800,1860],[2100,2160],[2670,2710],[3240.3295]
-               ]
-    genClipCsvFile("dance_58",clips80)
+    # clips80 = [[120,180],[240,265],[450,540],[945,1030],[1080,1140],[1845,1888],[2580,2640],[4110,4140],
+    #            [6435,6480]
+    #            ]
+    # genClipCsvFile("dance_46",clips80)
     # main()
-    # ClipOriVideo()
+    ClipOriVideo()

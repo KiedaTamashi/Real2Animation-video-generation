@@ -25,9 +25,6 @@ from -https://bowlroll.net/file/keyword/MMD >20190801
      -http://mmd.xiaolindraw.com/
      -https://www.deviantart.com/mmd-downloads-galore/gallery/39472353/models
 
-
-Next:3/4
-plan:
-3/5 C-VAE data all prepared.
-3/6-7 check pose estiamtion performation on data. DEBUG  vae
-3/8 train.
+Now 30000+ frames dataset
+Next plan:
+3/13 test posewarp source code. And request for ICCV 2019 'dance' paper. If possible, try 'dance'

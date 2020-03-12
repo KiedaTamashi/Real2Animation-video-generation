@@ -46,9 +46,17 @@ def extractFrames(ori_dir,map_dir,frame_base_dir,index_path,interval,start_num=0
     cnt = 0
     random.seed(time.time())
     interval_new = random.randint(interval-2, interval+2)
+    ban_list = ["Eren.avi","GTGoku.avi","RoseFreyja.avi","ifuleet.avi","inkling.avi",'luigi.avi',"Nikos.avi"]
 
     for mapVideoName in map_videoNames:
+        flag = False
         video_2 = cv2.VideoCapture(os.path.join(map_dir,mapVideoName))
+        for ban in ban_list:
+            if mapVideoName.endswith(ban):
+                flag=True
+                break
+        if flag:
+            continue
         for oriVideoName in ori_videoNames:
             if not oriVideoName.startswith("_".join(mapVideoName.split("_")[0:3])):
                 continue
@@ -277,10 +285,10 @@ def main():
     index_out = os.path.join(frame_base_dir, "index.csv")
 
     # transfer_files(vmd_dir,map_dir,suffix=".avi")
-    extractFrames(input_dir, map_dir, frame_base_dir, index_out, interval=6)
+    extractFrames(input_dir, map_dir, frame_base_dir, index_out, interval=5)
     print(time.time()-start_t)
 
 if __name__=="__main__":
     # add_condition(r"D:\download_cache\VAEmodel\index.csv")
-    prepareTestIndex(r"D:\download_cache\VAEmodel\MapFrame")
-    # main()
+    # prepareTestIndex(r"D:\download_cache\VAEmodel\MapFrame")
+    main()
