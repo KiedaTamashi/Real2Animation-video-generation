@@ -27,4 +27,18 @@ from -https://bowlroll.net/file/keyword/MMD >20190801
 
 Now 30000+ frames dataset
 Next plan:
+posewarp data:
+一个data代表一个视频，mat格式
+data['data'](['bbox']/['X'])[0][0]
+一个是中心点body box，(frame_num, 4)一个是(kps_num,coordinate,frame_num)
+
+set dtype = [('X', 'O'), ('bbox', 'O')]
+get two
+
 3/13 test posewarp source code. And request for ICCV 2019 'dance' paper. If possible, try 'dance'
+
+how to construct dataset:
+1/set the hparams to COCO
+2/Use openpose+smooth for every sub-video. get keypoints and save it in csv file or npy file temporarily [videoname, frame_num, kps]. first try one
+3/extract counter part anime pose to datasets and set its kps as its real counter part. enter part set 1
+4/gen .mat file.

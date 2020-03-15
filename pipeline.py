@@ -1,5 +1,5 @@
 from components import *
-import utils
+import util
 from pytorch_lightning import Trainer
 from model import skeletonVAE
 from settings import args
