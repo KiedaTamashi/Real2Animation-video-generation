@@ -228,7 +228,8 @@ def make_warped_stack(args):
     src_in = args[1]
     trans_in = args[2]
 
-    for i in range(11):
+
+    for i in range(int(mask.shape[-1])):
         mask_i = K.repeat_elements(tf.expand_dims(mask[:, :, :, i], 3), 3, 3)
         src_masked = tf.multiply(mask_i, src_in)
 
@@ -291,7 +292,7 @@ def network_posewarp(param):
 
     # 1. FG/BG separation
     x = unet(src_in, pose_src, [64]*2 + [128]*9, [128]*4 + [32])
-    src_mask_delta = my_conv(x, 11, activation='linear')
+    src_mask_delta = my_conv(x, n_joints, activation='linear')
     src_mask = keras.layers.add([src_mask_delta, src_mask_prior])
     src_mask = Activation('softmax', name='mask_src')(src_mask)
 

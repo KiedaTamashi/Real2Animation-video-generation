@@ -9,12 +9,23 @@ import util
 import truncated_vgg
 from keras.backend.tensorflow_backend import set_session
 from keras.optimizers import Adam
-
+import logging
+from logging import handlers
 
 def train(model_name, gpu_id):
     params = param.get_general_params()
 
     network_dir = params['model_save_dir'] + '/' + model_name
+
+    # add logger
+    logger = logging.getLogger("logger.log")
+    log_file_path = os.path.join(network_dir,"logger.log")
+    fh = logging.handlers.TimedRotatingFileHandler(
+        filename=log_file_path,
+        backupCount=0,
+        encoding='utf-8')
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
 
     if not os.path.isdir(network_dir):
         os.mkdir(network_dir)
@@ -38,20 +49,26 @@ def train(model_name, gpu_id):
     #model.summary()
     n_iters = params['n_training_iter']
 
-    for step in range(0, n_iters):
+    if not params['load_weights'] == None:
+        start = 0
+    else:
+        start = int(params['load_weights'].split("/")[-1][:-3])
+
+    for step in range(start, n_iters):
         x, y = next(train_feed)
 
         train_loss = model.train_on_batch(x, y)
 
         util.printProgress(step, 0, train_loss)
+        logger.debug(str(step)+":"+str(train_loss))
 
         if step > 0 and step % params['model_save_interval'] == 0:
             model.save(network_dir + '/' + str(step) + '.h5')
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Need model name and gpu id as command line arguments.")
-    else:
-        train(sys.argv[1], sys.argv[2])
-    # train('real', 0)
+    # if len(sys.argv) != 3:
+    #     print("Need model name and gpu id as command line arguments.")
+    # else:
+    #     train(sys.argv[1], sys.argv[2])
+    train('anime', 0)

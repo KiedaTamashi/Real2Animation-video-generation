@@ -417,8 +417,9 @@ def make_limb_masks(limbs, joints, img_width, img_height):
     n_limbs = len(limbs)
     mask = np.zeros((img_height, img_width, n_limbs))
 
-    # Gaussian sigma perpendicular to the limb axis.
-    sigma_perp = np.array([11, 11, 11, 11, 11, 11, 11, 11, 11, 13]) ** 2
+    # Gaussian sigma perpendicular to the limb axis. TODO if what real, should modify this
+    # sigma_perp = np.array([11, 11, 11, 11, 11, 11, 11, 11, 11, 13]) ** 2 #real
+    sigma_perp = np.array([11]*n_limbs) ** 2
 
     for i in range(n_limbs):
         n_joints_for_limb = len(limbs[i])
