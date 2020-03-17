@@ -28,7 +28,6 @@ def train(model_name, gpu_id):
     gan_lr = 1e-4
     disc_lr = 1e-4
     disc_loss = 0.1
-
     generator = networks.network_posewarp(params)
     generator.load_weights('../models/vgg_100000.h5')
 

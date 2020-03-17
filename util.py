@@ -189,6 +189,22 @@ def printProgress(step,test,train_loss,time=None):
     print(s)
     sys.stdout.flush()
 
+def smooth(csv_path,weight=0.85):
+    data = pd.read_csv(csv_path,header=None)
+    x = list(data.pop(0))
+    scalar = list(data.pop(1))
+    last = scalar[0]
+    smoothed = []
+    for point in scalar:
+        smoothed_val = last * weight + (1 - weight) * point
+        smoothed.append(smoothed_val)
+        last = smoothed_val
+    import matplotlib.pyplot as plt
+    plt.plot(x, smoothed)
+    plt.show()
+    # save = pd.DataFrame({'Step':data['Step'].values,'Value':smoothed})
+    # save.to_csv('smooth_'+csv_path)
+
 def main():
     left_base = r"D:\download_cache\PMXmodel\VIDEOfile"
     right_base = r"D:\download_cache\PMXmodel\OUTPUTclips"

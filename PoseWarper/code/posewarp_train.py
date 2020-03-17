@@ -49,7 +49,7 @@ def train(model_name, gpu_id):
     #model.summary()
     n_iters = params['n_training_iter']
 
-    if not params['load_weights'] == None:
+    if params['load_weights'] == None:
         start = 0
     else:
         start = int(params['load_weights'].split("/")[-1][:-3])
@@ -67,8 +67,8 @@ def train(model_name, gpu_id):
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) != 3:
-    #     print("Need model name and gpu id as command line arguments.")
-    # else:
-    #     train(sys.argv[1], sys.argv[2])
-    train('anime', 0)
+    if len(sys.argv) != 3:
+        print("Need model name and gpu id as command line arguments.")
+    else:
+        train(sys.argv[1], sys.argv[2])
+    # train('anime', 0)

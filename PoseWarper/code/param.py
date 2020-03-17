@@ -39,9 +39,9 @@ def get_general_params():
     param['project_dir'] = r'..'
     # param['project_dir'] = r'drive/My Drive'
     param['model_save_dir'] = param['project_dir'] + '/models'
-    param['data_dir'] = r'D:/download_cache/animeWarp'
+    param['data_dir'] = param['project_dir']+'/animeWarp'
     # param['data_dir'] = r'drive/My Drive/animeWarp'
-    param['batch_size'] = 4
-    param['load_weights'] = None #drive/My Drive/models/anime/1000.h5
+    param['batch_size'] = 16
+    param['load_weights'] = param['model_save_dir']+'4000.h5'
     return param
 

@@ -75,21 +75,33 @@ def warp_example_generator(vid_info_list, param, do_augment=True, return_pose_ve
 
         for i in range(batch_size):
 
-            # 1. choose random video.
-            vid = np.random.choice(len(vid_info_list), 1)[0]
+            n_frames=0
+            while n_frames<2:
+                 # 1. choose random video.
+                vid = np.random.choice(len(vid_info_list), 1)[0]
 
-            vid_bbox = vid_info_list[vid][1]
-            vid_x = vid_info_list[vid][2]
-            vid_path = vid_info_list[vid][3]
+                vid_bbox = vid_info_list[vid][1]
+                vid_x = vid_info_list[vid][2]
+                vid_path = vid_info_list[vid][3]
 
-            # 2. choose pair of frames
-            n_frames = vid_x.shape[2]
-            frames = np.random.choice(n_frames, 2, replace=False)
-            while abs(frames[0] - frames[1]) / (n_frames * 1.0) <= 0.02:
+                # 2. choose pair of frames
+                n_frames = vid_x.shape[2]
+            I0=None
+            I1=None
+            while(True):
+
                 frames = np.random.choice(n_frames, 2, replace=False)
-
-            I0, joints0, scale0, pos0 = read_frame(vid_path, frames[0], vid_bbox, vid_x)
-            I1, joints1, scale1, pos1 = read_frame(vid_path, frames[1], vid_bbox, vid_x)
+                while abs(frames[0] - frames[1]) / (n_frames * 1.0) <= 0.02:
+                    frames = np.random.choice(n_frames, 2, replace=False)
+            
+                I0, joints0, scale0, pos0 = read_frame(vid_path, frames[0], vid_bbox, vid_x)
+                I1, joints1, scale1, pos1 = read_frame(vid_path, frames[1], vid_bbox, vid_x)
+                if not I0 is None and not I1 is None:
+                    break
+                else:
+                    print(vid_path,frame[0],frame[1])
+                    continue
+                        
 
             if scale0 > scale1:
                 scale = scale_factor / scale0
