@@ -9,7 +9,7 @@ import param
 import util
 import truncated_vgg
 from keras.optimizers import Adam
-
+import pandas as pd
 
 def train(model_name, gpu_id):
     params = param.get_general_params()
@@ -29,7 +29,7 @@ def train(model_name, gpu_id):
     disc_lr = 1e-4
     disc_loss = 0.1
     generator = networks.network_posewarp(params)
-    generator.load_weights('../models/vgg_100000.h5')
+    generator.load_weights(params['load_weights'])
 
     discriminator = networks.discriminator(params)
     discriminator.compile(loss='binary_crossentropy', optimizer=Adam(lr=disc_lr))
@@ -43,11 +43,10 @@ def train(model_name, gpu_id):
                 loss=[networks.vgg_loss(vgg_model, response_weights, 12), 'binary_crossentropy'],
                 loss_weights=[1.0, disc_loss])
 
-    n_iters = 10000
+    n_iters = params['n_gan_iter']
     batch_size = params['batch_size']
-
+    loss_note = []
     for step in range(n_iters):
-
         x, y = next(train_feed)
 
         gen = generator.predict(x)
@@ -74,9 +73,11 @@ def train(model_name, gpu_id):
         x, y = next(train_feed)
         g_loss = gan.train_on_batch(x, [y, L])
         util.printProgress(step, 0, [g_loss[1], d_loss])
-
+        loss_note.append([str(step), str(g_loss[0]),str(g_loss[1]),str(d_loss)])
         if step % params['model_save_interval'] == 0 and step > 0:
-            generator.save(network_dir + '/' + str(step) + '.h5')
+            generator.save(network_dir + '/gan' + str(step) + '.h5')
+            pd.DataFrame(loss_note).to_csv(network_dir + f"/gan{step}.csv", header=None, index=None)
+            loss_note = []
 
 
 if __name__ == "__main__":

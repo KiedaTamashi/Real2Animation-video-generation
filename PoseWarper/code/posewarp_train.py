@@ -11,6 +11,7 @@ from keras.backend.tensorflow_backend import set_session
 from keras.optimizers import Adam
 import logging
 from logging import handlers
+import pandas as pd
 
 def train(model_name, gpu_id):
     params = param.get_general_params()
@@ -48,7 +49,7 @@ def train(model_name, gpu_id):
 
     #model.summary()
     n_iters = params['n_training_iter']
-
+    loss_note = []
     if params['load_weights'] == None:
         start = 0
     else:
@@ -58,13 +59,12 @@ def train(model_name, gpu_id):
         x, y = next(train_feed)
 
         train_loss = model.train_on_batch(x, y)
-
+        loss_note.append([str(step),str(train_loss)])
         util.printProgress(step, 0, train_loss)
-        logger.debug(str(step)+":"+str(train_loss))
-
         if step > 0 and step % params['model_save_interval'] == 0:
             model.save(network_dir + '/' + str(step) + '.h5')
-
+            pd.DataFrame(loss_note).to_csv(network_dir+f"/{step}.csv",header=None,index=None)
+            loss_note=[]
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

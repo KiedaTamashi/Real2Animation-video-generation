@@ -2,7 +2,7 @@ import torch
 import logging
 import os
 from logging import handlers
-from moviepy.editor import *
+# from moviepy.editor import *
 import pandas as pd
 import cv2
 import sys
@@ -205,6 +205,17 @@ def smooth(csv_path,weight=0.85):
     # save = pd.DataFrame({'Step':data['Step'].values,'Value':smoothed})
     # save.to_csv('smooth_'+csv_path)
 
+def combine_record(folder):
+    files = os.listdir(folder)
+    files.sort(key=lambda x: int(x.split(".")[0]))
+    for idx,file in enumerate(files):
+        if idx==0:
+            a = pd.read_csv(os.path.join(folder,file),header=None)
+        else:
+            a = pd.concat([a,pd.read_csv(os.path.join(folder,file),header=None)])
+    a.to_csv("final.csv",header=None,index=None)
+
+
 def main():
     left_base = r"D:\download_cache\PMXmodel\VIDEOfile"
     right_base = r"D:\download_cache\PMXmodel\OUTPUTclips"
@@ -221,14 +232,14 @@ def main():
             right = right_vs[idx]
             out = "c_"+right[:-4]+".avi"
             combineTwoVideo_height(os.path.join(left_base,left),os.path.join(right_base,right),os.path.join(right_base,out))
-
+pd.concat()
 
 
 
 if __name__=="__main__":
     # combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
-    clips80 = [[235,310],[420,540],[930,1020],[1080,1140],[1560,1800],[1830,1905],[2160,2250],[2310,2355],[2505,2610],[2700,2780]
+    clips80 = [
                ]
-    genClipCsvFile("dance_39",clips80)
+    genClipCsvFile("dance_26",clips80)
     # main()
     # ClipOriVideo()
