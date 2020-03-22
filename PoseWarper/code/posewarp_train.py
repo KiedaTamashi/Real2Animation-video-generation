@@ -17,17 +17,6 @@ def train(model_name, gpu_id):
     params = param.get_general_params()
 
     network_dir = params['model_save_dir'] + '/' + model_name
-
-    # add logger
-    logger = logging.getLogger("logger.log")
-    log_file_path = os.path.join(network_dir,"logger.log")
-    fh = logging.handlers.TimedRotatingFileHandler(
-        filename=log_file_path,
-        backupCount=0,
-        encoding='utf-8')
-    fh.setLevel(logging.DEBUG)
-    logger.addHandler(fh)
-
     if not os.path.isdir(network_dir):
         os.mkdir(network_dir)
 
@@ -44,8 +33,10 @@ def train(model_name, gpu_id):
     model = networks.network_posewarp(params)
     if not params['load_weights'] == None:
         model.load_weights(params['load_weights'])
-
-    model.compile(optimizer=Adam(lr=1e-4), loss=[networks.vgg_loss(vgg_model, response_weights, 12)])
+    alpha=0.4
+    #model.compile(optimizer=Adam(lr=1e-4), loss=[networks.vgg_loss(vgg_model, response_weights, 12)])
+    model.compile(optimizer=Adam(lr=1e-4),loss=lambda y_true, y_pred: (1 - alpha) * networks.vgg_loss(vgg_model, response_weights, 12)(y_true, y_pred)
+                                                                      +alpha*tf.reduce_mean(tf.square(y_pred-y_true)))
 
     #model.summary()
     n_iters = params['n_training_iter']

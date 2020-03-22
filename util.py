@@ -232,14 +232,14 @@ def main():
             right = right_vs[idx]
             out = "c_"+right[:-4]+".avi"
             combineTwoVideo_height(os.path.join(left_base,left),os.path.join(right_base,right),os.path.join(right_base,out))
-pd.concat()
+
 
 
 
 if __name__=="__main__":
     # combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
-    clips80 = [
+    clips80 = [[810,840],[925,965],[1010,1040],[1290,1330],[1380,1440],[1605,1635],[1655,1690],[1765,1875],[2070,2190],[2235,2310]
                ]
-    genClipCsvFile("dance_26",clips80)
+    genClipCsvFile("dance_25",clips80)
     # main()
     # ClipOriVideo()

@@ -70,13 +70,14 @@ def predict(model_name,gpu_id,save_file_name):
     model.load_weights(network_dir+save_file_name)  # TODO not sure the final ckpt name
     np.random.seed(11)
     feed = data_generation.create_feed(params, params['data_dir'], 'test',do_augment=False)
-    cnt = 0
+    cnt = 2
     while True:
         try:
             x, y = next(feed)
+            inp = recover2img(x[0])
+            cv2.imwrite(os.path.join(save_dir, str(cnt) + "inp.jpg"), inp[0])
             out = model.predict(x)
-            out = out[0]
-            out = recover2img(out)
+            out = recover2img(out[0])
             cv2.imwrite(os.path.join(save_dir,str(cnt)+".jpg"),out)
             gt = recover2img(y[0])
             cv2.imwrite(os.path.join(save_dir,str(cnt)+"gt.jpg"),gt)
@@ -91,4 +92,4 @@ if __name__ == "__main__":
     #     print("Need model name and gpu id as command line arguments.")
     # else:
     #     evaluate(sys.argv[1], sys.argv[2])
-    predict('', 0,'vgg+gan_5000.h5')
+    predict('', 0,'new11000.h5')
