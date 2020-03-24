@@ -6,6 +6,7 @@ from logging import handlers
 import pandas as pd
 import cv2
 import sys
+import numpy as np
 
 def generate_one_mone():
     one = torch.FloatTensor([1])
@@ -213,8 +214,14 @@ def combine_record(folder):
             a = pd.read_csv(os.path.join(folder,file),header=None)
         else:
             a = pd.concat([a,pd.read_csv(os.path.join(folder,file),header=None)])
-    a.to_csv("final.csv",header=None,index=None)
+    a.to_csv("mse8000.csv",header=None,index=None)
 
+def mse(img1_path,img2_path):
+    img1 = cv2.imread(img1_path)
+    img2 = cv2.imread(img2_path)
+    img1 = (img1 / 255.0 - 0.5) * 2.0
+    img2 = (img2 / 255.0 - 0.5) * 2.0
+    return np.mean(np.square(img1 - img2))
 
 def main():
     left_base = r"D:\download_cache\PMXmodel\VIDEOfile"

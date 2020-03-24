@@ -30,7 +30,7 @@ class SimpleCalculatorTests(unittest.TestCase):
         self.clip_index_dir = r"D:\download_cache\PMXmodel\CLIPIndex"
         # self.pairs = [[r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmx', r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmd', 30, 25]]
         # df = pd.read_csv(self.index, header=None,skiprows=self.process_range[0],nrows=self.process_range[1])
-        df = pd.read_csv(self.index, header=None,skiprows=718)
+        df = pd.read_csv(self.index, header=None,skiprows=472)
         self.pairs = df.values.tolist()
         self.driver = webdriver.Remote(
             command_executor='http://127.0.0.1:4723',
@@ -73,6 +73,7 @@ class SimpleCalculatorTests(unittest.TestCase):
                 #pmd
                 self.driver.find_element_by_name(" 文件 (F)  |").click()
                 self.driver.find_element_by_xpath('//MenuItem[starts-with(@Name, "导入动作数据")]').click()
+                time.sleep(1)
                 self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名(N)')]").send_keys(vmdfile + Keys.ENTER)
                 self.driver.find_element_by_xpath("//Button[starts-with(@Name,'确定')]").click()
                 #output
@@ -88,6 +89,7 @@ class SimpleCalculatorTests(unittest.TestCase):
                     #     '//Edit[starts-with(@Name, "地址")]').send_keys(
                     #     self.target_dir + Keys.ENTER)
                     # self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'地址')]").send_keys(self.target_dir + Keys.ENTER)
+                    time.sleep(1)
                     self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'文件名')]").send_keys(aviname + Keys.ENTER)
                     # self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'FPS')]").send_keys(Keys.BACKSPACE+Keys.BACKSPACE+str(fr))
                     self.driver.find_element_by_xpath("//Edit[starts-with(@Name,'录制范围')]").send_keys(str(start_frame))

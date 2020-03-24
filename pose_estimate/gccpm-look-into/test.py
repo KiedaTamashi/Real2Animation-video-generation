@@ -93,6 +93,7 @@ def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_s
 
 def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, save_maps=False,
              num_kps=16,get_feature=False,dataset_mode=False):
+    tmp_kps_dir = r"D:\download_cache\anime_data\tmpK"
     net = net.cuda().eval()
     base_height = 256
     scales = [1]
@@ -152,20 +153,25 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
             res_file.write('\n')
 
         if dataset_mode:
-            h,w,_ = img.shape
-            radius = 10
-            pose_img = np.zeros((h, w), np.uint8)
-            for id in range(len(all_keypoints)):
-                keypoint = all_keypoints[id]
-                if keypoint[0] != -1:
-                    # if colors[id] == (255, 0, 0):
-                    #     cv2.circle(img, (int(keypoint[0]), int(keypoint[1])),
-                    #                radius + 2, (255, 0, 0), -1)
-                    # else:
-                    cv2.circle(pose_img, (int(keypoint[0]), int(keypoint[1])),
-                               radius, (255,255,255), -1)
-            img_name = os.path.join(pose_dir, file_name)
-            cv2.imwrite(img_name, pose_img)
+            # h,w,_ = img.shape
+            # radius = 10
+            # pose_img = np.zeros((h, w), np.uint8)
+            # for id in range(len(all_keypoints)):
+            #     keypoint = all_keypoints[id]
+            #     if keypoint[0] != -1:
+            #         # if colors[id] == (255, 0, 0):
+            #         #     cv2.circle(img, (int(keypoint[0]), int(keypoint[1])),
+            #         #                radius + 2, (255, 0, 0), -1)
+            #         # else:
+            #         cv2.circle(pose_img, (int(keypoint[0]), int(keypoint[1])),
+            #                    radius, (255,255,255), -1)
+            # img_name = os.path.join(pose_dir, file_name)
+            # cv2.imwrite(img_name, pose_img)
+
+            # num, 2
+            np.save(os.path.join(tmp_kps_dir,file_name+'.npy'),np.array(all_keypoints))
+
+
 
         if visualize:
             # kpt_names = ['r_ank', 'r_kne', 'r_hip', 'l_hip', 'l_kne', 'l_ank', 'pel', 'spi', 'nec', 'hea',
@@ -205,7 +211,7 @@ if __name__ == '__main__':
     parser.add_argument('--multiscale', action='store_true', help='average inference results over multiple scales')
     parser.add_argument('--visualize', type=bool, default=False, help='show keypoints')
     parser.add_argument('--get_feature', type=bool, default=False, help='--get_feature')
-    parser.add_argument('--dataset_mode', type=bool, default=True, help='generate kps maps dataset for VAE')
+    parser.add_argument('--dataset_mode', type=bool, default=False, help='generate kps maps dataset for VAE')
     parser.add_argument('--save_maps', action='store_true', help='show keypoints')
     parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_anime_47.pth", help='path to the checkpoint')
     parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')

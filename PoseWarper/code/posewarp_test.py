@@ -38,7 +38,7 @@ def evaluate(model_name,gpu_id):
         print(i)
         model.load_weights('../models/' + model_name+'/'+str(i) + '.h5')
         np.random.seed(11)
-        feed = data_generation.create_feed(params, params['data_dir'], 'test')
+        feed = data_generation.create_feed(params, params['data_dir'], 'train')
         loss = 0
         for batch in range(n_batches):
             x, y = next(feed)
@@ -68,14 +68,16 @@ def predict(model_name,gpu_id,save_file_name):
     # model.compile(optimizer=Adam(), loss=[networks.vgg_loss(vgg_model, response_weights, 12)])
 
     model.load_weights(network_dir+save_file_name)  # TODO not sure the final ckpt name
-    np.random.seed(11)
-    feed = data_generation.create_feed(params, params['data_dir'], 'test',do_augment=False)
-    cnt = 2
+    np.random.seed(112)
+    feed = data_generation.create_feed(params, params['data_dir'], 'train',do_augment=False)
+    cnt = 8
     while True:
         try:
             x, y = next(feed)
             inp = recover2img(x[0])
             cv2.imwrite(os.path.join(save_dir, str(cnt) + "inp.jpg"), inp[0])
+            # cv2.imwrite(os.path.join(save_dir, str(cnt) + "map.jpg",x[2][0][:,:,0]))
+
             out = model.predict(x)
             out = recover2img(out[0])
             cv2.imwrite(os.path.join(save_dir,str(cnt)+".jpg"),out)
@@ -92,4 +94,4 @@ if __name__ == "__main__":
     #     print("Need model name and gpu id as command line arguments.")
     # else:
     #     evaluate(sys.argv[1], sys.argv[2])
-    predict('', 0,'new11000.h5')
+    predict('', 0,'gan5000.h5')

@@ -26,7 +26,8 @@ def make_vid_info_list(data_dir):
 
 
 def get_person_scale(joints):
-    upper_body_size = (-joints[0][1] + (joints[8][1] + joints[11][1]) / 2.0)
+    # TODO
+    upper_body_size = (-joints[1][1] + (joints[8][1] + joints[11][1]) / 2.0)
     rcalf_size = np.sqrt((joints[9][1] - joints[10][1]) ** 2 + (joints[9][0] - joints[10][0]) ** 2)
     lcalf_size = np.sqrt((joints[12][1] - joints[13][1]) ** 2 + (joints[12][0] - joints[13][0]) ** 2)
     calf_size = (lcalf_size + rcalf_size) / 2.0
@@ -88,7 +89,7 @@ def warp_example_generator(vid_info_list, param, do_augment=True, return_pose_ve
                 n_frames = vid_x.shape[2]
             I0=None
             I1=None
-            while(True):
+            while True:
 
                 frames = np.random.choice(n_frames, 2, replace=False)
                 while abs(frames[0] - frames[1]) / (n_frames * 1.0) <= 0.02:
@@ -99,7 +100,7 @@ def warp_example_generator(vid_info_list, param, do_augment=True, return_pose_ve
                 if not I0 is None and not I1 is None:
                     break
                 else:
-                    print(vid_path,frame[0],frame[1])
+                    print(vid_path,frames[0],frames[1])
                     continue
                         
 
@@ -429,7 +430,7 @@ def make_limb_masks(limbs, joints, img_width, img_height):
     n_limbs = len(limbs)
     mask = np.zeros((img_height, img_width, n_limbs))
 
-    # Gaussian sigma perpendicular to the limb axis. TODO if what real, should modify this
+    # Gaussian sigma perpendicular to the limb axis.
     # sigma_perp = np.array([11, 11, 11, 11, 11, 11, 11, 11, 11, 13]) ** 2 #real
     sigma_perp = np.array([11]*n_limbs) ** 2
 
