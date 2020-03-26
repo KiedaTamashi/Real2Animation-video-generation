@@ -211,7 +211,7 @@ if __name__ == '__main__':
     parser.add_argument('--multiscale', action='store_true', help='average inference results over multiple scales')
     parser.add_argument('--visualize', type=bool, default=False, help='show keypoints')
     parser.add_argument('--get_feature', type=bool, default=False, help='--get_feature')
-    parser.add_argument('--dataset_mode', type=bool, default=False, help='generate kps maps dataset for VAE')
+    parser.add_argument('--dataset_mode', type=bool, default=True, help='generate kps maps dataset for VAE')
     parser.add_argument('--save_maps', action='store_true', help='show keypoints')
     parser.add_argument('--checkpoint-path', type=str, default="checkpoints/checkpoint_anime_47.pth", help='path to the checkpoint')
     parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
     ori_dataFolder = "D:\download_cache\VAEmodel\OriFrame"
-    map_dataFolder = "D:\download_cache\VAEmodel\MapFrame"
+    map_dataFolder = r"D:\download_cache\anime_data\train"
     if data_flag=="real":
         dataset = LipTestDataset(ori_dataFolder)
     else:

@@ -1,5 +1,5 @@
 import numpy as np
-import random
+import random,math
 import pandas as pd
 import os,time,shutil
 import cv2
@@ -7,6 +7,7 @@ from data_prepare.smooth_pose import smooth_json_pose
 from data_prepare.video2vmd import video2keypoints
 from pose_estimate.process_imgs import load_json
 import scipy.io as sio
+from copy import deepcopy
 
 def get_clip_kps(filedir = r"D:\download_cache\PMXmodel\VIDEOclips"):
     files = os.listdir(filedir)
@@ -130,7 +131,7 @@ def gen_dataset_posetransfer(kps_dir=r"D:\download_cache\PMXmodel\VIDEOkps",vide
     test_frame = os.path.join(out_dir, "test")
     test_info = os.path.join(out_dir, "testK")
 
-    interval_new = random.randint(interval - 2, interval + 2)
+    interval_new = random.randint(interval - 1, interval + 1)
 
     videos = os.listdir(video_dir)
     random.shuffle(videos)
@@ -165,60 +166,147 @@ def gen_dataset_posetransfer(kps_dir=r"D:\download_cache\PMXmodel\VIDEOkps",vide
             if tick == interval_new:
                 print(video_name + str(frame_number))
                 cv2.imwrite(os.path.join(save_dir, video_name + "_" + str(cnt) + '.jpg'), img1)
-                cnt += 1
                 np.save(os.path.join(save_kps, video_name + "_" + str(cnt) + '.jpg' + '.npy'), np.array(kps_ori[frame_number]))
                 random.seed(time.time())
                 interval_new = random.randint(interval - 2, interval + 2)
+                cnt += 1
                 tick = 0
             else:
                 tick += 1
             frame_number += 1
         video_cap.release()
 
-
-def kps_Normalize(kps_r=r"D:\download_cache\anime_data\trainK", kps_a=r"D:\download_cache\anime_data\tmpK",
-                  output_dir = "D:\download_cache\anime_data\normK"):
+def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data\trainK", kps_a=r"D:\download_cache\anime_data\tmpK",
+                  output_dir = "D:/download_cache/anime_data/normK/"):
     img_nums = len(kps_r)
     kpss = os.listdir(kps_r)
-    width = 1920
-    height = 1080
     for idx in range(img_nums):
-        real_kps = np.load(os.path.join(kps_r,kpss[idx]))
-        anime_kps = np.load(os.path.join(kps_a,kpss[idx]))
-        neck_a = anime_kps[1,:]
-        lhip_a = anime_kps[13,:]
-        rhip_a = anime_kps[17,:]
-        neck_r = real_kps[1,:]
-        lhip_r = real_kps[11,:]
-        rhip_r = real_kps[8,:]
-        hip_a = (lhip_a[1]+rhip_a[1]) / 2.0
-        hip_r = (lhip_r[1]+rhip_r[1]) / 2.0
-        body_a = abs(neck_a[1] - hip_a[1])
-        body_r = abs(neck_r[1] - hip_r[1])
-        scale = float(body_a/body_r)
-        center_and_scale_image(real_kps)
+        real_kps = np.load(os.path.join(kps_r, kpss[idx]))
+        anime_kps = np.load(os.path.join(kps_a, kpss[idx]))
+        modified_kps = kps_Normalize(real_kps,anime_kps,scale_level=0.8)
+
+        np.save(output_dir + kpss[idx], modified_kps)
+
+def kps_Normalize(real_kps,anime_kps,scale_level=0.8):
+    # real and anime kps should be (n,2) numpy array
+    neck_a = anime_kps[1,:]
+    lhip_a = anime_kps[13,:]
+    rhip_a = anime_kps[17,:]
+    head_a = anime_kps[2,:]
+    neck_r = real_kps[1,:]
+    lhip_r = real_kps[11,:]
+    rhip_r = real_kps[8,:]
+    head_r = real_kps[0,:]
+
+    hip_a = (lhip_a[1]+rhip_a[1]) / 2.0
+    hip_r = (lhip_r[1]+rhip_r[1]) / 2.0
+    body_a = abs(neck_a[1] - hip_a)
+    body_r = abs(neck_r[1] - hip_r)
+    scale = float(body_a/body_r)
+    offset = neck_a-neck_r
+    center = neck_a
+
+    theta_a = math.atan((head_a[1]-neck_a[1])/(head_a[0]-neck_a[0]))
+    theta_r = math.atan((head_r[1] - neck_r[1]) / (head_r[0] - neck_r[0]))
+    theta = theta_a - theta_r
+    if abs(theta)>1.7:
+        T = None
+    else:
+        cos = math.cos(theta)
+        sin = math.sin(theta)
+        T = [cos,sin]
+
+    modified_kps = center_and_scale_joints(scale,offset,deepcopy(real_kps),deepcopy(center),scale_level=scale_level, trans=T)
 
 
+    return modified_kps
 
+# 134 -> 138, 27 -> 31, 24->27/28, 9->13
+def around_modified(filename):
+    frame_num = filename.split("_")[-1]
+    dance_name = "_".join(filename.split("_")[:3])
+    pose_all = np.load("D:/download_cache/PMXmodel/VIDEOkps\\"+dance_name+".npy")
+    ranges = [int(frame_num)*5,int(frame_num)*6]
+    index_name = filename + '.jpg.npy'
+    img_name = "D:\\download_cache\\anime_data\\train\\" + filename+'.jpg'
+    kps_r = r"D:\download_cache\anime_data\trainK"
+    kps_a = r"D:\download_cache\anime_data\tmpK"
+    cnt = ranges[0]
+    anime_kps = np.load(os.path.join(kps_a,index_name))
+    real_kps = np.load(os.path.join(kps_r,index_name))
+    # for item in pose_all[ranges[0]:ranges[1], :, :]:
+    #     img = cv2.imread(img_name)
+    #     item_ = kps_Normalize(deepcopy(item), anime_kps)
+    #     for _joint in item_:
+    #         _x, _y = _joint
+    #         cv2.circle(img, center=(int(_x), int(_y)), color=(255, 0, 0), radius=7, thickness=2)
+    #
+    #     cv2.imwrite("D:\\download_cache\\anime_data" + f"/neigh{cnt}.jpg", img)
+    #     cnt += 1
 
+    plot_points(img_name, real_kps, "/ori.jpg")
+    item_ = kps_Normalize(deepcopy(real_kps), anime_kps)
+    plot_points(img_name,item_,"/final.jpg")
+    plot_points(img_name,anime_kps,"/anime_reference.jpg")
+    item_ = align(deepcopy(real_kps), anime_kps)
+    plot_points(img_name,item_,"/aligned.jpg")
 
-def center_and_scale_image(I, img_width, img_height, pos, scale, joints):
-    I = cv2.resize(I, (0, 0), fx=scale, fy=scale)
-    joints = joints * scale
+    # dance_61_3_madoka2019_5.jpg
 
-    x_offset = (img_width - 1.0) / 2.0 - pos[0] * scale
-    y_offset = (img_height - 1.0) / 2.0 - pos[1] * scale
-    T = np.float32([[1, 0, x_offset], [0, 1, y_offset]])
-    I = cv2.warpAffine(I, T, (img_width, img_height))
+def plot_points(img_name,item_,outname):
+    img = cv2.imread(img_name)
+    for _joint in item_:
+        _x, _y = _joint
+        cv2.circle(img, center=(int(_x), int(_y)), color=(255, 0, 0), radius=7, thickness=2)
+    cv2.imwrite("D:\\download_cache\\anime_data" + outname, img)
 
-    joints[:, 0] += x_offset
-    joints[:, 1] += y_offset
+def center_and_scale_joints(scale, offset, joints,center,scale_level=0.8,trans=None):
+    for joint in joints:
+        joint += offset
+    output = []
+    for idx,joint in enumerate(joints):
+        joint -= center
+        joint = joint*(1-(1-scale)*scale_level)
+        if trans is not None and idx in [0,14,15]:
+            x = joint[0]
+            y = joint[1]
+            y = -y
+            cos = trans[0]
+            sin = trans[1]
+            joint = np.array([cos*x+sin*y,-(-sin*x+cos*y)])
 
-    return I, joints
+        output.append(joint + center)
+
+    return np.array(output)
+
+def align(real_kps,anime_kps,visualization=False):
+    # real and anime kps should be (n,2) numpy array
+    neck_a = anime_kps[1,:]
+    lhip_a = anime_kps[13,:]
+    rhip_a = anime_kps[17,:]
+    neck_r = real_kps[1,:]
+    lhip_r = real_kps[11,:]
+    rhip_r = real_kps[8,:]
+    hip_a = (lhip_a[1]+rhip_a[1]) / 2.0
+    hip_r = (lhip_r[1]+rhip_r[1]) / 2.0
+    offset = neck_a-neck_r
+    out = []
+    for joint in deepcopy(real_kps):
+        out.append(joint + offset)
+    return out
 
 
 
 if __name__ == '__main__':
     st = time.time()
-    gen_dataset_posetransfer()
+    # dirs = r"D:\download_cache\anime_data\trainK"
+    # items = os.listdir(dirs)
+    # items.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))
+    # for item in items:
+    #     oldname = os.path.join(dirs,item)
+    #     new = os.path.join(dirs,"_".join(item.split("_")[:-1])+"_"+str(int(item.split("_")[-1].split(".")[0])-1)+".jpg.npy")
+    #     os.rename(oldname,new)
+    # dance_61_10_Bakugou_8 dance_63_8_Kaito_9
+    around_modified("dance_79_8_KagamineRin_2")
+    # gen_dataset_posetransfer()
     print(time.time()-st)
