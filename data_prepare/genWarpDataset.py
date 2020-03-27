@@ -307,6 +307,6 @@ if __name__ == '__main__':
     #     new = os.path.join(dirs,"_".join(item.split("_")[:-1])+"_"+str(int(item.split("_")[-1].split(".")[0])-1)+".jpg.npy")
     #     os.rename(oldname,new)
     # dance_61_10_Bakugou_8 dance_63_8_Kaito_9
-    around_modified("dance_79_8_KagamineRin_2")
+    around_modified("dance_61_10_Bakugou_8")
     # gen_dataset_posetransfer()
     print(time.time()-st)

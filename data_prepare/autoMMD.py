@@ -30,7 +30,7 @@ class SimpleCalculatorTests(unittest.TestCase):
         self.clip_index_dir = r"D:\download_cache\PMXmodel\CLIPIndex"
         # self.pairs = [[r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmx', r'D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.pmd', 30, 25]]
         # df = pd.read_csv(self.index, header=None,skiprows=self.process_range[0],nrows=self.process_range[1])
-        df = pd.read_csv(self.index, header=None,skiprows=560)
+        df = pd.read_csv(self.index, header=None)
         self.pairs = df.values.tolist()
         self.driver = webdriver.Remote(
             command_executor='http://127.0.0.1:4723',
