@@ -11,6 +11,8 @@ import datetime
 from train_logger import get_logger
 import time
 
+# ver early preprocess
+
 def get_time(second):
     # import seconds of video, output typical time.
     m, s = divmod(int(second), 60)

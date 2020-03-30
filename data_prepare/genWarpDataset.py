@@ -177,15 +177,23 @@ def gen_dataset_posetransfer(kps_dir=r"D:\download_cache\PMXmodel\VIDEOkps",vide
         video_cap.release()
 
 def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data\trainK", kps_a=r"D:\download_cache\anime_data\tmpK",
-                  output_dir = "D:/download_cache/anime_data/normK/"):
-    img_nums = len(kps_r)
+                  output_dir = "D:/download_cache/anime_data/normK/",vis_num=None):
+    # default to "D:\\download_cache\\anime_data\\vis_img\\"
     kpss = os.listdir(kps_r)
+    img_nums = len(kpss)
+    max_vis = vis_num
+    flag = True
     for idx in range(img_nums):
         real_kps = np.load(os.path.join(kps_r, kpss[idx]))
         anime_kps = np.load(os.path.join(kps_a, kpss[idx]))
         modified_kps = kps_Normalize(real_kps,anime_kps,scale_level=0.8)
-
         np.save(output_dir + kpss[idx], modified_kps)
+        if idx > max_vis:
+            flag = False
+        if vis_num is not None and flag:
+            img_name = "D:\\download_cache\\anime_data\\train\\" + ".".join(kpss[idx].split(".")[:-1])
+            plot_points(img_name, modified_kps, ".".join(kpss[idx].split(".")[:-1]))
+
 
 def kps_Normalize(real_kps,anime_kps,scale_level=0.8):
     # real and anime kps should be (n,2) numpy array
@@ -206,8 +214,8 @@ def kps_Normalize(real_kps,anime_kps,scale_level=0.8):
     offset = neck_a-neck_r
     center = neck_a
 
-    theta_a = math.atan((head_a[1]-neck_a[1])/(head_a[0]-neck_a[0]))
-    theta_r = math.atan((head_r[1] - neck_r[1]) / (head_r[0] - neck_r[0]))
+    theta_a = math.atan((head_a[1]-neck_a[1]+0.001)/(head_a[0]-neck_a[0]+0.001))
+    theta_r = math.atan((head_r[1] - neck_r[1]+0.001) / (head_r[0] - neck_r[0]+0.001))
     theta = theta_a - theta_r
     if abs(theta)>1.7:
         T = None
@@ -258,7 +266,7 @@ def plot_points(img_name,item_,outname):
     for _joint in item_:
         _x, _y = _joint
         cv2.circle(img, center=(int(_x), int(_y)), color=(255, 0, 0), radius=7, thickness=2)
-    cv2.imwrite("D:\\download_cache\\anime_data" + outname, img)
+    cv2.imwrite("D:\\download_cache\\anime_data\\vis_img\\" + outname, img)
 
 def center_and_scale_joints(scale, offset, joints,center,scale_level=0.8,trans=None):
     for joint in joints:
@@ -295,18 +303,34 @@ def align(real_kps,anime_kps,visualization=False):
         out.append(joint + offset)
     return out
 
-
+def genPosetransferPair(input_dir = r"D:\download_cache\anime_data\train",
+                        output_file = r"D:\download_cache\anime_data\anime-pairs-train.csv"):
+    a = os.listdir(input_dir)
+    a.sort(key=lambda x: "_".join(x.split("_")[:-1]))
+    last = a[0]
+    tmp_list = []
+    out_list = []
+    for item in a:
+        if ("_".join(item.split("_")[:-1])) == ("_".join(last.split("_")[:-1])):
+            tmp_list.append(item)
+        else:
+            for x in tmp_list:
+                for y in tmp_list:
+                    if x != y:
+                        out_list.append([x, y])
+            tmp_list = []
+            tmp_list.append(item)
+        last = item
+    df = pd.DataFrame(out_list,columns=["from","to"])
+    df.to_csv(output_file,index=None)
 
 if __name__ == '__main__':
     st = time.time()
-    # dirs = r"D:\download_cache\anime_data\trainK"
-    # items = os.listdir(dirs)
-    # items.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))
-    # for item in items:
-    #     oldname = os.path.join(dirs,item)
-    #     new = os.path.join(dirs,"_".join(item.split("_")[:-1])+"_"+str(int(item.split("_")[-1].split(".")[0])-1)+".jpg.npy")
-    #     os.rename(oldname,new)
+    # gen_dataset_posetransfer(kps_dir=r"D:\download_cache\PMXmodel\VIDEOkps",video_dir=r"D:\download_cache\PMXmodel\OUTPUTclips_done",
+    #                      out_dir = r"D:\download_cache\anime_data",interval=4)
+    # kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data\trainK", kps_a=r"D:\download_cache\anime_data\tmpK",
+    #                   output_dir = "D:/download_cache/anime_data/normK/",vis_num=2000)
+    genPosetransferPair()
     # dance_61_10_Bakugou_8 dance_63_8_Kaito_9
-    around_modified("dance_61_10_Bakugou_8")
-    # gen_dataset_posetransfer()
+    # around_modified("dance_61_10_Bakugou_8")
     print(time.time()-st)
