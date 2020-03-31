@@ -93,7 +93,7 @@ def infer(net, img, scales, base_height, stride, img_mean=[128, 128, 128], img_s
 
 def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, save_maps=False,
              num_kps=16,get_feature=False,dataset_mode=False):
-    tmp_kps_dir = r"D:\download_cache\anime_data\tmpK"
+    tmp_kps_dir = r"D:\download_cache\anime_data2\tmpK"
     net = net.cuda().eval()
     base_height = 256
     scales = [1]
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
     ori_dataFolder = "D:\download_cache\VAEmodel\OriFrame"
-    map_dataFolder = r"D:\download_cache\anime_data\train"
+    map_dataFolder = r"D:\download_cache\anime_data2\train"
     if data_flag=="real":
         dataset = LipTestDataset(ori_dataFolder)
     else:

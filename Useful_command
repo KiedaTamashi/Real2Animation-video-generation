@@ -21,3 +21,5 @@ scp -v -r /user/e/e0509845/animeWarp e0509845@xgpf10:/tmp/tzw/stage3
 
 从远程主机复制整个文件夹到本地目录下
 scp -r e0509845@xgpe1:/tmp/tzw/Pose-Transfer/checkpoints/market_PATN/700_* /user/e/e0509845/
+
+python3 train.py --dataroot ./anime_data/ --BP_input_nc 16 --no_flip
