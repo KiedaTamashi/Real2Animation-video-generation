@@ -38,4 +38,18 @@ get two
 3/13 test posewarp source code. And request for ICCV 2019 'dance' paper. If possible, try 'dance'
 
 how to construct dataset:
-1/is there any problem with the alignment??
+discover:
+
+1/上半身、下半身的坐标不会发生任何改变。所有点的旋转角度只会改变他们下属的裙带节点。
+2/center只变position，所以平移不改变姿势。
+3/上本身跟着grove和center做平移，下半身因为有IK所有会扭曲
+
+step:
+中心永远0，0，0， 根据初始和center->groove的offset算所有点的初始偏移。此后以groove作为候选的起转中心。
+1/把几个postion应用上去。上半身，直接跟着偏移，下半身还不知道咋算。
+2/对上半身，我们现在有了上半身的绝对坐标。‘上半身’->'上半身2'->'左肩'/'右肩'/'首'。
+‘首’->‘头’，右肩->右腕->右ひじ->右手首
+注意初始方向
+3/右肩C和右腕是一样的，可以混用继承右肩的转角，最后我们需要的是右腕
+
+

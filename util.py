@@ -240,7 +240,26 @@ def main():
             out = "c_"+right[:-4]+".avi"
             combineTwoVideo_height(os.path.join(left_base,left),os.path.join(right_base,right),os.path.join(right_base,out))
 
+def get_file_encoding(file_path):
 
+    try:
+        f = open(file_path, "rb")
+        fbytes = f.read()
+        f.close()
+    except BaseException:
+        raise Exception("unknown encoding!")
+
+    codelst = ('utf_8', 'shift-jis')
+
+    for encoding in codelst:
+        try:
+            fstr = fbytes.decode(encoding)  # bytes文字列から指定文字コードの文字列に変換
+            fstr = fstr.encode('utf-8')  # uft-8文字列に変換
+            return encoding
+        except BaseException:
+            pass
+
+    raise Exception("unknown encoding!")
 
 
 if __name__=="__main__":

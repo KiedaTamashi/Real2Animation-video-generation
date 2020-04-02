@@ -2,13 +2,13 @@ import numpy as np
 import random,math
 import pandas as pd
 import os,time,shutil
-import cv2
+import cv2,csv
 from data_prepare.smooth_pose import smooth_json_pose
 from data_prepare.video2vmd import video2keypoints
 from pose_estimate.process_imgs import load_json
 import scipy.io as sio
 from copy import deepcopy
-from functools import reduce
+from util import get_file_encoding
 
 def get_PoseEstimation_txt(folder):
     with open("test_id.txt","w+") as f:
@@ -497,19 +497,24 @@ def getAngleFromVMD(vmd_file,reference_csv = "D:\download_cache\PMXmodel\index.c
         "右腕": [],
         "右ひじ": [],
         "左足": [],
-        "左ひざ": [],
+        "左ひざ": [],#empty
         "右足": [],
-        "右ひざ": [],
-        "センター": [],#x
-        "グルーブ": [],#x
+        "右ひざ": [],#empty
+        "センター": [], # from this ↓, we all get the position
+        "グルーブ": [],
         "左足ＩＫ": [],
         "右足ＩＫ": []
     }
     vmd = Vmd.from_file(vmd_file)
     data = vmd.euler_dict['BoneKeyFrameRecord']
+    # TODO for IK, the rotation is quite meaning less. we need the position of this guy. and the same for センター and グルーブ, we just get the position
+    # this position is offset value
     for item in data:
         name = item['BoneName']
-        bone_frame_dic[name].append([item['FrameTime'], item['Rotation']])
+        if name in  ["左足ＩＫ","右足ＩＫ", "センター" ,"グルーブ"]:
+            bone_frame_dic[name].append([item['FrameTime'], item['Position']])
+        else:
+            bone_frame_dic[name].append([item['FrameTime'], item['Rotation']])
     over_all = []
     for x, y in bone_frame_dic.items():
         last = None
@@ -518,9 +523,14 @@ def getAngleFromVMD(vmd_file,reference_csv = "D:\download_cache\PMXmodel\index.c
             num, euler_angles = item
             if last is not None:
                 length = num - last[0]
-                X = np.linspace(last[1]['X'], euler_angles['X'], length, endpoint=False).tolist()
-                Y = np.linspace(last[1]['Y'], euler_angles['Y'], length, endpoint=False).tolist()
-                Z = np.linspace(last[1]['Z'], euler_angles['Z'], length, endpoint=False).tolist()
+                try:
+                    X = np.linspace(last[1]['X'], euler_angles['X'], length, endpoint=False).tolist()
+                    Y = np.linspace(last[1]['Y'], euler_angles['Y'], length, endpoint=False).tolist()
+                    Z = np.linspace(last[1]['Z'], euler_angles['Z'], length, endpoint=False).tolist()
+                except KeyError:
+                    X = np.linspace(last[1]['x'], euler_angles['x'], length, endpoint=False).tolist()
+                    Y = np.linspace(last[1]['y'], euler_angles['y'], length, endpoint=False).tolist()
+                    Z = np.linspace(last[1]['z'], euler_angles['z'], length, endpoint=False).tolist()
                 for i in zip(X, Y, Z):
                     tmp.append(list(i))
             last = [num, euler_angles]
@@ -530,6 +540,165 @@ def getAngleFromVMD(vmd_file,reference_csv = "D:\download_cache\PMXmodel\index.c
             over_all.append(tmp)
     over_all = np.array(over_all)
     return over_all
+
+
+
+def getBoneFromCsv(bone_csv_file):
+    '''
+    Order of Output:
+    0-center 1-groove 2-r_leg_IK 3-l_leg_IK 4-upperbody 5-upperbody2 6-lowerbody 7-neck 8-head 9-r_shoulder
+    10-arm 11-r_elbow 12-r_hand 13-l_shoulder 14-l_arm 15-l_elbow 16-l_hand 17-r_leg 18-r_knee 19-r_ankle 20-l_leg
+    21-l_knee 22-l_ankle
+    :param bone_csv_file:
+    :return:
+    '''
+    with open(bone_csv_file, "r", encoding=get_file_encoding(bone_csv_file)) as bf:
+        reader = csv.reader(bf)
+        output =np.ones((23,4)).tolist()
+        for row in reader:
+            if row[1] == "上半身" or row[2].lower() == "upperbody":
+                output[4] = [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "グルーブ" or row[2].lower() == "groove":
+                output[1]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "上半身2" or row[2].lower() == "upperbody2":
+                output[5]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "首" or row[2].lower() == "neck":
+                output[7]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "頭" or row[2].lower() == "head":
+                output[8]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左肩" or row[2].lower() == "l_shoulder":
+                output[13]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左腕" or row[2].lower() == "l_arm":
+                output[14]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左ひじ" or row[2].lower() == "l_elbow":
+                output[15]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右肩" or row[2].lower() == "r_shoulder":
+                output[9]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右腕" or row[2].lower() == "arm":
+                output[10]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右ひじ" or row[2].lower() == "r_elbow":
+                output[11]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右手首" or row[2].lower() == "r_hand":
+                output[12]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左手首" or row[2].lower() == "l_hand":
+                output[16]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "下半身" or row[2].lower() == "lower body":
+                output[6]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左足" or row[2].lower() == "leg_l":
+                output[20]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左ひざ" or row[2].lower() == "knee_l":
+                output[21]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左足首" or row[2].lower() == "ankle_l":
+                output[22] = [row[2], float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右足" or row[2].lower() == "leg_r":
+                output[17]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右ひざ" or row[2].lower() == "knee_r":
+                output[18]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右足首" or row[2].lower() == "ankle_r":
+                output[19]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[0] == "Bone" and (
+                    row[1] == "左足ＩＫ" or row[2].lower() == "leg ik_l"):
+                output[3]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[0] == "Bone" and (
+                    row[1] == "右足ＩＫ" or row[2].lower() == "leg ik_r"):
+                output[2]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "センター" or row[2].lower() == "center":
+                output[0]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+    return output
+
+def simpleShowForCsv(model_csv = "D:\download_cache\PMXmodel\CSVfile\ka.csv",img_path =r"D:\download_cache\PMXmodel\test.jpg"):
+    bones = getBoneFromCsv(model_csv)
+    img = cv2.imread(img_path)
+    for idx, _joint in enumerate(bones[:-2]):
+        _, _x, _y, _ = _joint
+        cv2.circle(img, center=(int(_x * 42) + 960, 960 - int(_y * 42)), color=(255, 0, 0), radius=5, thickness=1)
+        # cv2.imwrite("D:\\download_cache\\anime_data\\vis_img\\" + outname, img)
+    cv2.imwrite(os.path.join(os.path.dirname(img_path),"out.jpg"), img)
+
+def rotateMatrix(a,b,c,mode='ZXY'):
+    # enter euler angle a,b,c(degree format) for axis-X,Y,Z
+
+    # MMD order is YXZ
+    a = math.radians(a)
+    b = math.radians(b)
+    c = math.radians(c)
+    Rx = np.array([[1,0,0],[0,math.cos(a),math.sin(a)],[0,-math.sin(a),math.cos(a)]],dtype=np.float32)
+    Ry = np.array([[math.cos(b),0,-math.sin(b)],[0,1,0],[math.sin(b),0,math.cos(b)]],dtype=np.float32)
+    Rz = np.array([[math.cos(c),math.sin(c),0],[-math.sin(c),math.cos(c),0],[0,0,1]],dtype=np.float32)
+    # Y-X-Z
+    # TODO for upper body is ZXY ,but why?
+    if mode == "XYZ":
+        return np.dot(np.dot(Rx, Ry),Rz)
+    elif mode== "YXZ":
+        return np.dot(np.dot(Ry, Rx), Rz)
+    elif mode=="ZXY":
+        return np.dot(np.dot(Rz, Rx), Ry)
+
+def getSingleFrame3Dpoints(euler_rotates, ori_points,vis=False):
+    '''
+    :param euler_rotates:  from getAngleFromVMD() -> sample one -> (17,3)
+    :param ori_points:  from getBoneFromCsv()-> (23,3)
+    :return:
+    '''
+    # 现在假设只有一个rotation， 是 上半身
+    euler_rotate = euler_rotates[0]
+    rotM = rotateMatrix(euler_rotate[0],euler_rotate[1],euler_rotate[2])
+    ori_points = np.asarray(np.asarray(ori_points)[:,1:],dtype=np.float64)
+    ref = np.asarray(ori_points[4]) # upperbody
+    points = np.asarray(ori_points[5:17]) #eliminate name
+    points = dealSingleRotation(points,rotM,ref).tolist()
+    for i in range(5,17):
+        ori_points[i] = points[i-5]
+
+    if vis:
+        Map_3Dpoints_2D(ori_points[4:17,:],vis)
+
+    return ori_points
+
+def dealSingleRotation(points,rotM,ref):
+    num = len(points)
+    for i in range(num):
+        # print(points[i].T)
+        points[i] = singlePointRotation(points[i].T,rotM,ref)
+    return points
+
+def singlePointRotation(point,rotM,ref):
+    return np.dot(rotM,(point-ref))+ref
+
+def Map_3Dpoints_2D(joint_world,vis=False):
+    # just enter a 3-D world point. (x,y,z), output what we want
+    camera = {
+        'R':rotateMatrix(0,0,0),
+        'T':[0,10,0],
+        'f':45
+    }
+    T = np.asarray(camera['T'])
+    R = camera['R']
+    f = camera['f']
+    joint_num = len(joint_world)
+    # 世界坐标系 -> 相机坐标系
+    # [R|t] world coords -> camera coords
+    joint_cam = np.zeros((joint_num, 3))  # joint camera
+    for i in range(joint_num):  # joint i
+        joint_cam[i] = np.dot(R, joint_world[i] - T)  # R * (pt - T)
+    F = np.asarray([[f,0,0],[0,-f,0],[0,0,1]])
+    joint_mmd = np.zeros((joint_num, 3))
+    for i in range(joint_num):
+        joint_mmd[i] = np.dot(F,joint_cam[i])
+    for i in range(joint_num):
+        joint_mmd[i] = joint_mmd[i]+np.asarray([960,540,0])
+
+    if vis:
+        img_path = r"D:\download_cache\PMXmodel\test.jpg"
+        img = cv2.imread(img_path)
+        for idx in range(joint_num):
+            _joint = joint_mmd[idx]
+            _x, _y, _ = _joint
+            cv2.circle(img, center=(int(_x), int(_y)), color=(255, 0, 0), radius=5, thickness=2)
+        cv2.imwrite(os.path.join(os.path.dirname(img_path), "out.jpg"), img)
+
+    # the 2-D (x,y) is the keypoints we need.
+    return joint_mmd
 
 if __name__ == '__main__':
     st = time.time()
@@ -542,8 +711,13 @@ if __name__ == '__main__':
     # genPosetransferPair()
     # dance_61_10_Bakugou_8 dance_63_8_Kaito_9
     # around_modified("dance_10_2_sunshang_0")
-    getAngleFromVMD("D:\download_cache\PMXmodel\VMDfile\dance_81_yousa.vmd")
-
+    # getAngleFromVMD(r"D:\download_cache\PMXmodel\VMDfile\dance_80_ka.vmd")
+    bones = getBoneFromCsv("D:\download_cache\PMXmodel\CSVfile\ka.csv")
+    joints = []
+    for idx, _joint in enumerate(bones[:-2]):
+        _, _x, _y, _z = _joint
+        joints.append([_x,_y,_z])
+    getSingleFrame3Dpoints([[-15.0, 20.0, 45.0]], bones,vis=True)
 
     # pprint(data[5000])
     print(time.time()-st)
