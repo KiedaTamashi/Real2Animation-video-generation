@@ -476,6 +476,23 @@ class Vmd:
             }
         return res_dict
 
+    @property
+    def four_dict(self):
+        from copy import deepcopy
+        res_dict = deepcopy(self.dict)
+        for index, d in enumerate(res_dict['BoneKeyFrameRecord']):
+            x = d["Rotation"]["x"]
+            y = d["Rotation"]["y"]
+            z = d["Rotation"]["z"]
+            w = d["Rotation"]["w"]
+            res_dict['BoneKeyFrameRecord'][index]["Rotation"] = {
+                "x": x,
+                "y": y,
+                "z": z,
+                "w": w,
+            }
+        return res_dict
+
 def getAngleFromVMD(vmd_file,reference_csv = "D:\download_cache\PMXmodel\index.csv"):
     # e.g. input: D:\download_cache\PMXmodel\VMDfile\dance_81_yousa.vmd"
     df = pd.read_csv(reference_csv,header=None)
@@ -538,23 +555,96 @@ def getAngleFromVMD(vmd_file,reference_csv = "D:\download_cache\PMXmodel\index.c
             for i in range(n_frames-len(tmp)):
                 tmp.append(tmp[-1])
             over_all.append(tmp)
-    over_all = np.array(over_all)
+    over_all = np.swapaxes(np.array(over_all),0,1)
     return over_all
 
+
+def getAngleFromVMD_v2(vmd_file,reference_csv = "D:\download_cache\PMXmodel\index.csv"):
+    '''
+    this one is for 四元数
+    :param vmd_file:
+    :param reference_csv:
+    :return:
+    '''
+    # e.g. input: D:\download_cache\PMXmodel\VMDfile\dance_81_yousa.vmd"
+    df = pd.read_csv(reference_csv,header=None)
+    n_frames = 0
+    for item in df.values:
+        if "_".join(os.path.basename(vmd_file).split("_")[0:2])==item[0]:
+            n_frames = int(item[-1])
+            break
+    bone_frame_dic = {
+        "上半身": [],
+        "上半身2": [],
+        "下半身": [],
+        "首": [],
+        "頭": [],
+        "左肩": [],
+        "左腕": [],
+        "左ひじ": [],
+        "右肩": [],
+        "右腕": [],
+        "右ひじ": [],
+        "左足": [],
+        "左ひざ": [],#empty
+        "右足": [],
+        "右ひざ": [],#empty
+        "センター": [], # from this ↓, we all get the position
+        "グルーブ": [],
+        "左足ＩＫ": [],
+        "右足ＩＫ": []
+    }
+    vmd = Vmd.from_file(vmd_file)
+    data = vmd.four_dict['BoneKeyFrameRecord']
+    # TODO for IK, the rotation is quite meaning less. we need the position of this guy. and the same for センター and グルーブ, we just get the position
+    # this position is offset value
+    for item in data:
+        name = item['BoneName']
+        if name in  ["左足ＩＫ","右足ＩＫ", "センター" ,"グルーブ"]:
+            bone_frame_dic[name].append([item['FrameTime'], item['Position']])
+        else:
+            bone_frame_dic[name].append([item['FrameTime'], item['Rotation']])
+    over_all = []
+    for x, y in bone_frame_dic.items():
+        last = None
+        tmp = []
+        for item in y:
+            num, euler_angles = item
+            if last is not None:
+                length = num - last[0]
+                try:
+                    W = np.linspace(last[1]['w'], euler_angles['w'], length, endpoint=False).tolist()
+                    X = np.linspace(last[1]['x'], euler_angles['x'], length, endpoint=False).tolist()
+                    Y = np.linspace(last[1]['y'], euler_angles['y'], length, endpoint=False).tolist()
+                    Z = np.linspace(last[1]['z'], euler_angles['z'], length, endpoint=False).tolist()
+                except KeyError:
+                    W = np.linspace(0, 0, length, endpoint=False).tolist()
+                    X = np.linspace(last[1]['x'], euler_angles['x'], length, endpoint=False).tolist()
+                    Y = np.linspace(last[1]['y'], euler_angles['y'], length, endpoint=False).tolist()
+                    Z = np.linspace(last[1]['z'], euler_angles['z'], length, endpoint=False).tolist()
+                for i in zip(W, X, Y, Z):
+                    tmp.append(list(i))
+            last = [num, euler_angles]
+        if tmp:
+            for i in range(n_frames-len(tmp)):
+                tmp.append(tmp[-1])
+            over_all.append(tmp)
+    over_all = np.swapaxes(np.array(over_all),0,1)
+    return over_all
 
 
 def getBoneFromCsv(bone_csv_file):
     '''
     Order of Output:
-    0-center 1-groove 2-r_leg_IK 3-l_leg_IK 4-upperbody 5-upperbody2 6-lowerbody 7-neck 8-head 9-r_shoulder
-    10-arm 11-r_elbow 12-r_hand 13-l_shoulder 14-l_arm 15-l_elbow 16-l_hand 17-r_leg 18-r_knee 19-r_ankle 20-l_leg
-    21-l_knee 22-l_ankle
+    0-center 1-groove 2-r_leg_IK 3-l_leg_IK 4-upperbody 5-upperbody2 6-neck 7-head 8-r_eye 9-l_eye 10-r_shoulder
+    11-arm 12-r_elbow 13-r_hand 14-l_shoulder 15-l_arm 16-l_elbow 17-l_hand 18-lowerbody 19-r_leg 20-r_knee 21-r_ankle 22-l_leg
+    23-l_knee 24-l_ankle
     :param bone_csv_file:
     :return:
     '''
     with open(bone_csv_file, "r", encoding=get_file_encoding(bone_csv_file)) as bf:
         reader = csv.reader(bf)
-        output =np.ones((23,4)).tolist()
+        output =np.ones((25,4)).tolist()
         for row in reader:
             if row[1] == "上半身" or row[2].lower() == "upperbody":
                 output[4] = [row[2],float(row[5]), float(row[6]), float(row[7])]
@@ -563,39 +653,43 @@ def getBoneFromCsv(bone_csv_file):
             if row[1] == "上半身2" or row[2].lower() == "upperbody2":
                 output[5]= [row[2],float(row[5]), float(row[6]), float(row[7])]
             if row[1] == "首" or row[2].lower() == "neck":
-                output[7]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "頭" or row[2].lower() == "head":
-                output[8]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "左肩" or row[2].lower() == "l_shoulder":
-                output[13]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "左腕" or row[2].lower() == "l_arm":
-                output[14]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "左ひじ" or row[2].lower() == "l_elbow":
-                output[15]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "右肩" or row[2].lower() == "r_shoulder":
-                output[9]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "右腕" or row[2].lower() == "arm":
-                output[10]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "右ひじ" or row[2].lower() == "r_elbow":
-                output[11]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "右手首" or row[2].lower() == "r_hand":
-                output[12]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "左手首" or row[2].lower() == "l_hand":
-                output[16]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "下半身" or row[2].lower() == "lower body":
                 output[6]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "左足" or row[2].lower() == "leg_l":
-                output[20]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "左ひざ" or row[2].lower() == "knee_l":
-                output[21]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "左足首" or row[2].lower() == "ankle_l":
-                output[22] = [row[2], float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "右足" or row[2].lower() == "leg_r":
+            if row[1] == "頭" or row[2].lower() == "head":
+                output[7]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左肩" or row[2].lower() == "l_shoulder":
+                output[14]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左腕" or row[2].lower() == "l_arm":
+                output[15]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左ひじ" or row[2].lower() == "l_elbow":
+                output[16]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右肩" or row[2].lower() == "r_shoulder":
+                output[10]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右腕" or row[2].lower() == "arm":
+                output[11]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右ひじ" or row[2].lower() == "r_elbow":
+                output[12]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右手首" or row[2].lower() == "r_hand":
+                output[13]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左手首" or row[2].lower() == "l_hand":
                 output[17]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "右ひざ" or row[2].lower() == "knee_r":
+            if row[1] == "下半身" or row[2].lower() == "lower body":
                 output[18]= [row[2],float(row[5]), float(row[6]), float(row[7])]
-            if row[1] == "右足首" or row[2].lower() == "ankle_r":
+            if row[1] == "左足" or row[2].lower() == "leg_l":
+                output[22]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左ひざ" or row[2].lower() == "knee_l":
+                output[23]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左足首" or row[2].lower() == "ankle_l":
+                output[24] = [row[2], float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右足" or row[2].lower() == "leg_r":
                 output[19]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右ひざ" or row[2].lower() == "knee_r":
+                output[20]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右足首" or row[2].lower() == "ankle_r":
+                output[21]= [row[2],float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "右目" or row[2].lower() == "right eye":
+                output[8] = [row[2], float(row[5]), float(row[6]), float(row[7])]
+            if row[1] == "左目" or row[2].lower() == "left eye":
+                output[9] = [row[2], float(row[5]), float(row[6]), float(row[7])]
             if row[0] == "Bone" and (
                     row[1] == "左足ＩＫ" or row[2].lower() == "leg ik_l"):
                 output[3]= [row[2],float(row[5]), float(row[6]), float(row[7])]
@@ -625,33 +719,277 @@ def rotateMatrix(a,b,c,mode='ZXY'):
     Rx = np.array([[1,0,0],[0,math.cos(a),math.sin(a)],[0,-math.sin(a),math.cos(a)]],dtype=np.float32)
     Ry = np.array([[math.cos(b),0,-math.sin(b)],[0,1,0],[math.sin(b),0,math.cos(b)]],dtype=np.float32)
     Rz = np.array([[math.cos(c),math.sin(c),0],[-math.sin(c),math.cos(c),0],[0,0,1]],dtype=np.float32)
-    # Y-X-Z
-    # TODO for upper body is ZXY ,but why?
+    # ZXY DirectXMath [XYZ,XZY,YXZ,YZX,ZXY,ZYX]
     if mode == "XYZ":
         return np.dot(np.dot(Rx, Ry),Rz)
     elif mode== "YXZ":
         return np.dot(np.dot(Ry, Rx), Rz)
     elif mode=="ZXY":
         return np.dot(np.dot(Rz, Rx), Ry)
+    elif mode=="ZYX":
+        return np.dot(np.dot(Rz, Ry), Rx)
+    elif mode=="XZY":
+        return np.dot(np.dot(Rx, Rz), Ry)
+    elif mode== "YZX":
+        return np.dot(np.dot(Ry, Rz), Rx)
+
+def getRotationMatrix(fourElm):
+    w,x,y,z = fourElm
+    return np.asarray([[1-2*(y**2)-2*(z**2),2*x*y-2*w*z,2*x*z+2*w*y],
+                       [2*x*y+2*w*z,1-2*(x**2)-2*(z**2),2*y*z-2*w*x],
+                       [2*x*z-2*w*y,2*y*z+2*w*x,1-2*(x**2)-2*(y**2)]])
+
+def getRotMbyTwoVector(v1,v2):
+    theta = float(math.acos(np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))))
+    a1,a2,a3 = v1.tolist()
+    b1,b2,b3 = v2.tolist()
+    x= a2*b3-a3*b2
+    y= a3*b1-a1*b3
+    z= a1*b2-a2*b1
+    return getRotationMatrix([theta,x,y,z])
+
+def getSingle3DpointsFrom4elm(euler_rotates, ori_points,vis=False):
+    # here euler_rotates is four element number (rotation w,x,y,z)!!!
+    ori_points = np.asarray(np.asarray(ori_points)[:, 1:], dtype=np.float64)
+
+
+    # # center/groove
+    # num = len(ori_points)
+    # for i in range(num):
+    #     ori_points[i] += np.asarray(euler_rotates[13][1:])
+    #     ori_points[i] += np.asarray(euler_rotates[14][1:])
+    #
+    # #upperbody
+    # rotM_upperbody = getRotationMatrix(euler_rotates[0])
+    # ref_upperbody = np.asarray(ori_points[4])  # l-shoulder
+    # points = np.asarray(ori_points[5:18])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_upperbody, points[i] - ref_upperbody) + ref_upperbody
+    #
+    # #upperbody2
+    # rotM_upperbody2 = getRotationMatrix(euler_rotates[1])
+    # ref_upperbody2 = np.asarray(ori_points[5])  # l-shoulder
+    # points = np.asarray(ori_points[6:18])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_upperbody2, points[i] - ref_upperbody2) + ref_upperbody2
+    #
+    # # neck
+    # rotM_neck = getRotationMatrix(euler_rotates[3])
+    # ref_neck = np.asarray(ori_points[6])  # l-shoulder
+    # points = np.asarray(ori_points[7:10])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_neck, points[i] - ref_neck) + ref_neck
+    #
+    # # head
+    # rotM_head = getRotationMatrix(euler_rotates[4])
+    # ref_head = np.asarray(ori_points[7])  # l-shoulder
+    # points = np.asarray(ori_points[8:10])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_head, points[i] - ref_head) + ref_head
+
+
+    # # l-shoulder
+    # rotM_shoulder1 = getRotationMatrix(euler_rotates[5])
+    # ref_shoulder1 = np.asarray(ori_points[14])  # l-shoulder
+    # points = np.asarray(ori_points[15:18])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_shoulder1, points[i] - ref_shoulder1) + ref_shoulder1
+
+    # l-arm
+    rotM_arm1 = getRotationMatrix(euler_rotates[6])
+    ref_arm1 = np.asarray(ori_points[15])  # l-shoulder
+    points = np.asarray(ori_points[16:18])
+    num = len(points)
+    for i in range(num):
+        points[i] = np.dot(rotM_arm1, points[i] - ref_arm1) + ref_arm1
+
+    # l-elbow
+    rotM_elbow1 = getRotationMatrix(euler_rotates[7])
+    ref_elbow1 = np.asarray(ori_points[16])  # l-
+    points = np.asarray(ori_points[17:18])
+    num = len(points)
+    for i in range(num):
+        points[i] = np.dot(rotM_elbow1, points[i]- ref_elbow1)+ ref_elbow1
+
+    # # r-shoulder
+    # rotM_shoulder2 = getRotationMatrix(euler_rotates[8])
+    # ref_shoulder2 = np.asarray(ori_points[10])  # l-shoulder
+    # points = np.asarray(ori_points[11:14])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_shoulder2, points[i] - ref_shoulder2) + ref_shoulder2
+    #
+    # # r-arm
+    # rotM_arm2 = getRotationMatrix(euler_rotates[9])
+    # ref_arm2 = np.asarray(ori_points[11])  # l-arm
+    # points = np.asarray(ori_points[12:14])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_arm2, points[i] - ref_arm2) + ref_arm2
+    #
+    # # r-elbow
+    # rotM_elbow2 = getRotationMatrix(euler_rotates[10])
+    # ref_elbow2 = np.asarray(ori_points[12])  # l-
+    # points = np.asarray(ori_points[13:14])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_elbow2, points[i] - ref_elbow2) + ref_elbow2
+
+
+
+    if vis:
+         Map_3Dpoints_2D(ori_points[14:18, :], vis)
+    return ori_points
+
 
 def getSingleFrame3Dpoints(euler_rotates, ori_points,vis=False):
     '''
     :param euler_rotates:  from getAngleFromVMD() -> sample one -> (17,3)
+    #['0-上半身', '1-上半身2', '2-下半身', '3-首', '4-頭', '5-左肩', '6-左腕', '7-左ひじ', '8-右肩', '9-右腕', '10-右ひじ', '
+    #   11- 左足', 12-'右足', 13-'センター', 14-'グルーブ', 15-'左足ＩＫ', 16-'右足ＩＫ']
     :param ori_points:  from getBoneFromCsv()-> (23,3)
     :return:
     '''
-    # 现在假设只有一个rotation， 是 上半身
-    euler_rotate = euler_rotates[0]
-    rotM = rotateMatrix(euler_rotate[0],euler_rotate[1],euler_rotate[2])
-    ori_points = np.asarray(np.asarray(ori_points)[:,1:],dtype=np.float64)
-    ref = np.asarray(ori_points[4]) # upperbody
-    points = np.asarray(ori_points[5:17]) #eliminate name
-    points = dealSingleRotation(points,rotM,ref).tolist()
-    for i in range(5,17):
-        ori_points[i] = points[i-5]
+    # 现在假设只有2个rotation， 是 上半身,upperbody2
+    ori_points = np.asarray(np.asarray(ori_points)[:, 1:], dtype=np.float64)
+
+    # center/groove
+    # num = len(ori_points)
+    # for i in range(num):
+    #     ori_points[i]+= np.asarray(euler_rotates[13])
+    #     ori_points[i] += np.asarray(euler_rotates[14])
+
+
+    # #upperbody
+    # euler_rotate = euler_rotates[0]
+    # rotM = rotateMatrix(euler_rotate[0],euler_rotate[1],euler_rotate[2],mode="ZXY")
+    # ref = np.asarray(ori_points[4]) # upperbody
+    # points = np.asarray(ori_points[5:18]) #eliminate name
+    # points = dealSingleRotation(points,rotM,ref).tolist()
+    # for i in range(5,18):
+    #     ori_points[i] = points[i-5]
+    # #upperbody2
+    # euler_rotate = euler_rotates[1]
+    # rotM = rotateMatrix(euler_rotate[0], euler_rotate[1], euler_rotate[2], mode="ZXY")
+    # ref = np.asarray(ori_points[5])  # upperbody2
+    # points = np.asarray(ori_points[6:18])
+    # points = dealSingleRotation(points, rotM, ref).tolist()
+    # for i in range(6, 18):
+    #     ori_points[i] = points[i - 6]
+    # # neck
+    # euler_rotate = euler_rotates[3]
+    # rotM = rotateMatrix(euler_rotate[0], euler_rotate[1], euler_rotate[2], mode="ZXY")
+    # ref = np.asarray(ori_points[6])  # neck
+    # points = np.asarray(ori_points[7:10])
+    # points = dealSingleRotation(points, rotM, ref).tolist()
+    # for i in range(7, 10):
+    #     ori_points[i] = points[i - 7]
+    # # head
+    # euler_rotate = euler_rotates[4]
+    # rotM = rotateMatrix(euler_rotate[0], euler_rotate[1], euler_rotate[2], mode="ZXY")
+    # ref = np.asarray(ori_points[7])  # head
+    # points = np.asarray(ori_points[8:10])
+    # points = dealSingleRotation(points, rotM, ref).tolist()
+    # for i in range(8, 10):
+    #     ori_points[i] = points[i - 8]
+
+    # # l-shoulder
+    # euler_rotate = euler_rotates[5]
+    # rotM = rotateMatrix(euler_rotate[0], euler_rotate[1], euler_rotate[2], mode="ZXY")
+    # ref = np.asarray(ori_points[14])  # l-shoulder
+    # points = np.asarray(ori_points[15:18])
+    # points = dealSingleRotation(points, rotM, ref).tolist()
+    # for i in range(15, 18):
+    #     ori_points[i] = points[i - 15]
+    #
+    # # l-arm
+    # euler_rotate = euler_rotates[6]
+    # rotM = rotateMatrix(euler_rotate[0], euler_rotate[1], euler_rotate[2], mode="ZXY")
+    # ref = np.asarray(ori_points[15])  # l-arm
+    # points = np.asarray(ori_points[16:18])
+    #
+    # local2world = rotateMatrix(0, 0, -49)
+    # world2local = np.linalg.inv(local2world)
+    # rotM_ = np.dot(local2world,np.dot(rotM,world2local))
+    #
+    # points = dealSingleRotation(points, rotM_, ref).tolist()
+    #
+    # for i in range(16, 18):
+    #     ori_points[i] = points[i - 16]
+    #
+    # # l-elbow
+    # euler_rotate = euler_rotates[7]
+    # rotM = rotateMatrix(euler_rotate[0], euler_rotate[1], euler_rotate[2], mode="ZXY")
+    # ref = np.asarray(ori_points[16])  # l-eblow
+    # points = np.asarray(ori_points[17:18])
+    #
+    # local2world = rotateMatrix(0, 0, -42)
+    # world2local = np.linalg.inv(local2world)
+    # rotM_ = np.dot(local2world, np.dot(rotM, world2local))
+    #
+    # points = dealSingleRotation(points, rotM_, ref).tolist()
+    # for i in range(17, 18):
+    #     ori_points[i] = points[i - 17]
+    #
+    # # r-shoulder
+    # euler_rotate = euler_rotates[8]
+    # rotM = rotateMatrix(euler_rotate[0], euler_rotate[1], euler_rotate[2], mode="ZXY")
+    # ref = np.asarray(ori_points[10])  # l-shoulder
+    # points = np.asarray(ori_points[11:14])
+    # points = dealSingleRotation(points, rotM, ref).tolist()
+    # for i in range(11, 14):
+    #     ori_points[i] = points[i - 11]
+
+    # r-arm
+    euler_rotate = euler_rotates[9]
+    rotM = rotateMatrix(45, 50, 30, mode="ZXY")
+    ref = np.asarray(ori_points[11])  # l-arm
+    points = np.asarray(ori_points[12:14])
+
+    num = len(points)
+    for i in range(num):
+        # print(points[i].T)
+        # TODO -90<X<90, -180<y,z<180, xz left-hand,y is right-hand
+        # points[i] = np.dot(rotateMatrix(0, 0, -132),points[i]-ref)
+        # points[i] = np.dot(rotM, points[i])
+        # points[i] = np.dot(np.linalg.inv(rotateMatrix(0, 0, -132)), points[i])+ref
+
+        points[i] = points[i] - ref
+        points[i] = np.dot(rotateMatrix(0, 50, 0), points[i])
+        points[i] = np.dot(rotateMatrix(45, 0, 0), points[i])
+        points[i] = np.dot(rotateMatrix(0, 0, 30), points[i])
+
+
+        points[i] = points[i] + ref
+
+
+    # # r-elbow
+    # euler_rotate = euler_rotates[10]
+    # rotM = rotateMatrix(euler_rotate[0], euler_rotate[1], euler_rotate[2], mode="ZXY")
+    # ref = np.asarray(ori_points[12])  # l-
+    # points = np.asarray(ori_points[13:14])
+    # last_rot = deepcopy(rotM)
+    #
+    # num = len(points)
+    # for i in range(num):
+    #     # print(points[i].T)
+    #     # TODO test the rotateMatrix right or not
+    #     points[i] = np.dot(rotateMatrix(0, 0, -138), points[i] - ref)
+    #     points[i] = np.dot(np.linalg.inv(last_rot), points[i])
+    #     points[i] = np.dot(rotM, points[i])
+    #     points[i] = np.dot(last_rot, points[i])
+    #     points[i] = np.dot(np.linalg.inv(rotateMatrix(0, 0, -138)), points[i]) + ref
+
+
 
     if vis:
-        Map_3Dpoints_2D(ori_points[4:17,:],vis)
+         Map_3Dpoints_2D(ori_points[4:18, :], vis)
+
 
     return ori_points
 
@@ -659,7 +997,7 @@ def dealSingleRotation(points,rotM,ref):
     num = len(points)
     for i in range(num):
         # print(points[i].T)
-        points[i] = singlePointRotation(points[i].T,rotM,ref)
+        points[i] = singlePointRotation(points[i],rotM,ref)
     return points
 
 def singlePointRotation(point,rotM,ref):
@@ -694,7 +1032,7 @@ def Map_3Dpoints_2D(joint_world,vis=False):
         for idx in range(joint_num):
             _joint = joint_mmd[idx]
             _x, _y, _ = _joint
-            cv2.circle(img, center=(int(_x), int(_y)), color=(255, 0, 0), radius=5, thickness=2)
+            cv2.circle(img, center=(int(_x), int(_y)), color=(255, 0, 0), radius=7, thickness=3)
         cv2.imwrite(os.path.join(os.path.dirname(img_path), "out.jpg"), img)
 
     # the 2-D (x,y) is the keypoints we need.
@@ -711,13 +1049,17 @@ if __name__ == '__main__':
     # genPosetransferPair()
     # dance_61_10_Bakugou_8 dance_63_8_Kaito_9
     # around_modified("dance_10_2_sunshang_0")
-    # getAngleFromVMD(r"D:\download_cache\PMXmodel\VMDfile\dance_80_ka.vmd")
+    ori_angles = getAngleFromVMD_v2(r"D:\download_cache\PMXmodel\VMDfile\dance_63_ka.vmd") #frames_num, type, 3    63
     bones = getBoneFromCsv("D:\download_cache\PMXmodel\CSVfile\ka.csv")
     joints = []
     for idx, _joint in enumerate(bones[:-2]):
         _, _x, _y, _z = _joint
         joints.append([_x,_y,_z])
-    getSingleFrame3Dpoints([[-15.0, 20.0, 45.0]], bones,vis=True)
+    input_angles = ori_angles[0].tolist()
+    # getSingleFrame3Dpoints([[0.64,0.0,0.0],[0.0,-0.6,0.0],[6.4, 13.3, -6.7],[-28.5,0.6,-6.9],[-0.4,-34.1,0.6],[38.6,0.9,-1.4],
+    #                        [16.2,7.9,1.4],[-4.1,-48.8,19.5],[30.0,-88.4,-29.2],[17.3,0.5,17.0],[20.4,-17.5,-52.0],[13.9,25.4,3.2]
+    #                         ],bones,vis=True)
+    getSingle3DpointsFrom4elm(input_angles,bones,vis=True)
 
     # pprint(data[5000])
     print(time.time()-st)
