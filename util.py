@@ -247,7 +247,10 @@ def get_file_encoding(file_path):
         fbytes = f.read()
         f.close()
     except BaseException:
-        raise Exception("unknown encoding!")
+        f = open(file_path, "rb",encoding='shift-jis')
+        fbytes = f.read()
+        f.close()
+        # raise Exception("unknown encoding!")
 
     codelst = ('utf_8', 'shift-jis')
 
@@ -261,6 +264,16 @@ def get_file_encoding(file_path):
 
     raise Exception("unknown encoding!")
 
+def extracted_frame(fr_n,video):
+    v = cv2.VideoCapture(video)
+    flag, frame = v.read()
+    frame_num = 0
+    while flag:
+        if frame_num == fr_n:
+            cv2.imwrite(os.path.join(r"D:\download_cache\PMXmodel\real_shape","_".join(os.path.basename(video).split("_")[:-1])+".jpg"),frame)
+        frame_num += 1
+        flag, frame = v.read()
+
 
 if __name__=="__main__":
     # combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
@@ -269,3 +282,17 @@ if __name__=="__main__":
     genClipCsvFile("dance_20",clips80)
     # main()
     # ClipOriVideo()
+
+    # fps = 30
+    # imgs_dir = r"D:\download_cache\PMXmodel\real_shape"
+    # fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    # video_writer = cv2.VideoWriter("test.avi", fourcc, fps, (1920, 1080))
+    # # no glob, need number-index increasing
+    # imgs = os.listdir(imgs_dir)
+    # for i in imgs:
+    #     imgname = os.path.join(imgs_dir, i)
+    #     frame = cv2.imread(imgname)
+    #     frame = cv2.resize(frame,(1920, 1080))
+    #     video_writer.write(frame)
+    #
+    # video_writer.release()

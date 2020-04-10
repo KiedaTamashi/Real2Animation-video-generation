@@ -12,7 +12,7 @@ xgpf2 - ML
 
 2/scp
 正向：
-scp /user/e/e0509845/test.png e0509845@xgpf10:/tmp/tzw/simple-HRNet/samples
+scp /user/e/e0509845/generate_pose_map_anime.py e0509845@xgpe1:/tmp/tzw/
 反向backup：
 scp * e0509845@sunfire0:/user/e/e0509845
 

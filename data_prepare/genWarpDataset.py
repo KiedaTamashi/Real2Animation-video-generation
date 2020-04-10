@@ -29,7 +29,6 @@ def get_clip_kps(filedir = r"D:\download_cache\PMXmodel\VIDEOclips"):
             shutil.rmtree(json_out_dir)
         time.sleep(3)
         os.mkdir(json_out_dir)
-
         video2keypoints(video_path, json_out_dir)
 
         #smooth the kps. Using window size ~= 1/2*frame_rate
@@ -182,38 +181,112 @@ def gen_dataset_posetransfer(kps_dir=r"D:\download_cache\PMXmodel\VIDEOkps",vide
             frame_number += 1
         video_cap.release()
 
-def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data\trainK", kps_a=r"D:\download_cache\anime_data\tmpK",
-                  output_dir = "D:/download_cache/anime_data/normK/",vis=None):
+def eucliDist(A, B):
+    return np.sqrt(sum(np.power((A - B), 2)))
+
+def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\download_cache\anime_data2\tmpK",
+                  output_dir = "D:/download_cache/anime_data2/normK/",vis=None):
+    # quite bad: Teto naraka Vigna Bakugou_20
+    # dance 49
+    #
     # default to "D:\\download_cache\\anime_data\\vis_img\\"
+
     kpss = os.listdir(kps_r)
     img_nums = len(kpss)
     # max_vis = vis_num
+    r_bones = getRealBone("D:/download_cache/PMXmodel/real_shape/" + kps_r.split("\\")[-2])
+    bones =None
+    last_model =None
     for idx in range(img_nums):
         real_kps = np.load(os.path.join(kps_r, kpss[idx]))
+        #TODO hard-code debug
+        if kpss[idx].split("_")[1] in ['24','25','26','30','31','39','55']:
+            for item in real_kps:
+                item[0] = item[0]/1280*1920
+                item[1] = item[1]/720*1080
+
         anime_kps = np.load(os.path.join(kps_a, kpss[idx]))
-        modified_kps = kps_Normalize(real_kps,anime_kps,scale_level=0.8)
+        r_bone = r_bones[kpss[idx].split("_")[1]]
+        if kpss[idx].split("_")[3]+".csv" != last_model:
+            try:
+                bones = getBoneFromCsv(os.path.join("D:\download_cache\PMXmodel\CSVfile",kpss[idx].split("_")[3]+".csv"))
+            except:
+                continue
+            last_model = kpss[idx].split("_")[3] + ".csv"
+            joints = []
+            for idx, _joint in enumerate(bones[:-2]):
+                _, _x, _y, _z = _joint
+                joints.append(np.asarray([_x,_y,_z]))
+            bones = Map_3Dpoints_2D(joints,vis=False)
+            # 0-center 1-groove 2-r_leg_IK 3-l_leg_IK 4-upperbody 5-upperbody2 6-neck 7-head 8-r_eye 9-l_eye 10-r_shoulder
+            # 11-arm 12-r_elbow 13-r_hand 14-l_shoulder 15-l_arm 16-l_elbow 17-l_hand 18-lowerbody 19-r_leg 20-r_knee 21-r_ankle 22-l_leg
+            # 23-l_knee 24-l_ankle
+            #leg, arm, upper body, shoulder
+            anime_length = [eucliDist(bones[19],bones[21]),eucliDist(bones[11],bones[13]),eucliDist((bones[19]+bones[22])/2.0,bones[7]),eucliDist(bones[11],bones[15])]
+        real_length = [max(eucliDist(r_bone[8],r_bone[9])+eucliDist(r_bone[9],r_bone[10]),eucliDist(r_bone[11],r_bone[12])+eucliDist(r_bone[12],r_bone[13])),
+                       max(eucliDist(r_bone[2], r_bone[3]) + eucliDist(r_bone[3], r_bone[4]), eucliDist(r_bone[5], r_bone[6]) + eucliDist(r_bone[6], r_bone[7])),
+                       eucliDist((r_bone[8]+r_bone[9])/2.0, r_bone[1]),
+                       eucliDist(r_bone[2], r_bone[5])]
+        proportation = []
+        for x,y in zip(anime_length,real_length):
+            proportation.append(x/y)
+        modified_kps = kps_Normalize(real_kps,anime_kps,ref=proportation,scale_level=0.9)
+
+        img_size = (192,256)
+        img_ori = cv2.imread("D:\\download_cache\\anime_data2\\train_ori\\" + ".".join(kpss[idx].split(".")[:-1]))
+
+        center_point = modified_kps[1,:]
+        center_x, center_y = center_point
+        if int(center_x) - 405 < 0:
+            crop_l = 0
+            crop_r = 1080
+        elif int(center_x) + 405 > 1920:
+            crop_l = 1920-1080
+            crop_r = 1920
+        else:
+            crop_l = int(center_x) - 405
+            crop_r = int(center_x) + 405
+
+        cropped = img_ori[0:1080, crop_l:crop_r, :]  # 裁剪坐标为[y0:y1, x0:x1]
+        normalized = cv2.resize(cropped, img_size, interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite("D:\\download_cache\\anime_data2\\trainN\\" + ".".join(kpss[idx].split(".")[:-1]), normalized)
+        for kps in modified_kps:
+            kps[0] = kps[0] - crop_l
+            kps[0] = kps[0] / 810 * img_size[0]
+            kps[1] = kps[1] / 1080 * img_size[1]
+
         np.save(output_dir + kpss[idx], modified_kps)
-        if vis is not None and kpss[idx].split("_")[3] in vis:
-            img_name = "D:\\download_cache\\anime_data\\train\\" + ".".join(kpss[idx].split(".")[:-1])
-            plot_points(img_name, modified_kps, ".".join(kpss[idx].split(".")[:-1]))
+        if vis:
+            img_name = "D:\\download_cache\\anime_data2\\trainN\\" + ".".join(kpss[idx].split(".")[:-1])
+
+            img = cv2.imread(img_name)
+            for _joint in modified_kps:
+                _x, _y = _joint
+                cv2.circle(img, center=(int(_x), int(_y)), color=(255, 0, 0), radius=3, thickness=2)
+            # cv2.imwrite("D:\\download_cache\\anime_data\\vis_img\\" + outname, img)
+            cv2.imwrite("D:\\download_cache\\anime_data2\\vis\\" + ".".join(kpss[idx].split(".")[:-1]), img)
 
 
-def kps_Normalize(real_kps,anime_kps,scale_level=0.8):
+def kps_Normalize(real_kps,anime_kps,ref=None,scale_level=0.8):
     # real and anime kps should be (n,2) numpy array
+    _, _, upper_body, _ = ref #leg, arm, upper body, shoulder
+    for i in ref:
+        i/=upper_body
+
     neck_a = anime_kps[1,:]
-    lhip_a = anime_kps[13,:]
-    rhip_a = anime_kps[17,:]
+    # lhip_a = anime_kps[13,:]
+    # rhip_a = anime_kps[17,:]
     head_a = anime_kps[2,:]
     neck_r = real_kps[1,:]
-    lhip_r = real_kps[11,:]
-    rhip_r = real_kps[8,:]
+    # lhip_r = real_kps[11,:]
+    # rhip_r = real_kps[8,:]
     head_r = real_kps[0,:]
+    # hip_a = (lhip_a[1]+rhip_a[1]) / 2.0
+    # hip_r = (lhip_r[1]+rhip_r[1]) / 2.0
+    # body_a = abs(neck_a[1] - hip_a)
+    # body_r = abs(neck_r[1] - hip_r)
+    # scale_body = float(body_a/body_r)
 
-    hip_a = (lhip_a[1]+rhip_a[1]) / 2.0
-    hip_r = (lhip_r[1]+rhip_r[1]) / 2.0
-    body_a = abs(neck_a[1] - hip_a)
-    body_r = abs(neck_r[1] - hip_r)
-    scale = float(body_a/body_r)
     offset = neck_a-neck_r
     center = neck_a
 
@@ -226,7 +299,7 @@ def kps_Normalize(real_kps,anime_kps,scale_level=0.8):
         cos = math.cos(theta)
         sin = math.sin(theta)
         T = [cos,sin]
-
+    scale = ref
     modified_kps = center_and_scale_joints(scale,offset,deepcopy(real_kps),deepcopy(center),scale_level=scale_level, trans=T)
 
 
@@ -273,23 +346,60 @@ def plot_points(img_name,item_,outname):
     cv2.imwrite("D:\\download_cache\\anime_data\\" + outname, img)
 
 def center_and_scale_joints(scale, offset, joints,center,scale_level=0.8,trans=None):
+    joints = np.asarray(joints)
     for joint in joints:
         joint += offset
-    output = []
-    for idx,joint in enumerate(joints):
-        joint -= center
-        joint = joint*(1-(1-scale)*scale_level)
-        if trans is not None and idx in [0,14,15]:
+    # main body
+    joints -= center
+    offset_shoulder1 = joints[2]*scale[-1] - joints[2]
+    joints[2:5] += offset_shoulder1
+    offset_shoulder2 = joints[5] * scale[-1] - joints[5]
+    joints[5:8] += offset_shoulder2
+
+    offset_low1 = joints[8] * scale[-2] - joints[8]
+    joints[8:11] += offset_low1
+    offset_low2 = joints[11] * scale[-2] - joints[11]
+    joints[11:14] += offset_low2
+
+    joints[0] = joints[0] * scale[-2]
+    joints[14:16] = joints[14:16] * scale[-2]
+    for idx in [0,14,15]:
+        joint = joints[idx]
+        if trans is not None:
             x = joint[0]
             y = joint[1]
             y = -y
             cos = trans[0]
             sin = trans[1]
-            joint = np.array([cos*x+sin*y,-(-sin*x+cos*y)])
+            joints[idx] = np.array([cos*x+sin*y,-(-sin*x+cos*y)])
+    joints += center
 
-        output.append(joint + center)
+    # arm
+    center = deepcopy(joints[2])
+    joints[3:5] -= center
+    joints[3:5] = joints[3:5]*scale[1]
+    joints[3:5] += center
 
-    return np.array(output)
+    center = deepcopy(joints[5])
+    joints[6:8] -= center
+    joints[6:8] = joints[6:8] * scale[1]
+    joints[6:8] += center
+
+    # leg
+    center = deepcopy(joints[8])
+    joints[9:11] -= center
+    joints[9:11] = joints[9:11] * scale[0]
+    joints[9:11] += center
+
+    center = deepcopy(joints[11])
+    joints[12:14] -= center
+    joints[12:14] = joints[12:14] * scale[0]
+    joints[12:14] += center
+    # leg, arm, upper body, shoulder: ref
+
+
+
+    return np.asarray(joints)
 
 def align(real_kps,anime_kps,visualization=False):
     # real and anime kps should be (n,2) numpy array
@@ -325,6 +435,8 @@ def genPosetransferPair(input_dir = r"D:\download_cache\anime_data\train",
             tmp_list = []
             tmp_list.append(item)
         last = item
+
+    np.random.shuffle(out_list)
     df = pd.DataFrame(out_list,columns=["from","to"])
     df.to_csv(output_file,index=None)
 
@@ -700,6 +812,19 @@ def getBoneFromCsv(bone_csv_file):
                 output[0]= [row[2],float(row[5]), float(row[6]), float(row[7])]
     return output
 
+def getRealBone(filedir):
+    out = dict()
+    v_names = ['24','25','26','30','31','39','42','44','46','49','55']
+    for i,file in enumerate(os.listdir(filedir)):
+        tmp = []
+        pose = load_json(os.path.join(filedir,file))['people'][0]['pose_keypoints_2d']
+        for idx in range(0, len(pose), 3):
+            x, y, prob = pose[idx], pose[idx + 1], pose[idx + 2]
+            if prob > 0.2:
+                tmp.append([x,y])
+        out[v_names[i]] = np.asarray(tmp)
+    return out
+
 def simpleShowForCsv(model_csv = "D:\download_cache\PMXmodel\CSVfile\ka.csv",img_path =r"D:\download_cache\PMXmodel\test.jpg"):
     bones = getBoneFromCsv(model_csv)
     img = cv2.imread(img_path)
@@ -743,9 +868,9 @@ def getRotMbyTwoVector(v1,v2):
     theta = float(math.acos(np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2))))
     a1,a2,a3 = v1.tolist()
     b1,b2,b3 = v2.tolist()
-    x= a2*b3-a3*b2
-    y= a3*b1-a1*b3
-    z= a1*b2-a2*b1
+    x = a2*b3-a3*b2
+    y = a3*b1-a1*b3
+    z = a1*b2-a2*b1
     return getRotationMatrix([theta,x,y,z])
 
 def getSingle3DpointsFrom4elm(euler_rotates, ori_points,vis=False):
@@ -793,59 +918,72 @@ def getSingle3DpointsFrom4elm(euler_rotates, ori_points,vis=False):
 
 
     # # l-shoulder
-    # rotM_shoulder1 = getRotationMatrix(euler_rotates[5])
+    # rotM_shoulder1 = np.linalg.inv(getRotationMatrix(euler_rotates[5]))
     # ref_shoulder1 = np.asarray(ori_points[14])  # l-shoulder
-    # points = np.asarray(ori_points[15:18])
+    # points = np.asarray(ori_points[15:16])
     # num = len(points)
     # for i in range(num):
-    #     points[i] = np.dot(rotM_shoulder1, points[i] - ref_shoulder1) + ref_shoulder1
+    #     # R2T2 Rn R1T1 * P
+    #     points[i] = np.dot(rotM_shoulder1, points[i] - ref_shoulder1) + ref_shoulder1 - 0
+    #
+    # # l-arm
+    # rotM_arm1 = np.linalg.inv(getRotationMatrix(euler_rotates[6]))
+    # ref_arm1 = np.asarray(ori_points[15])  # l-shoulder
+    # points = np.asarray(ori_points[16:17])
+    # num = len(points)
+    # for i in range(num):
+    #     # TODO MMD的旋转是local系自个儿转？？
+    #     # pointInArm = np.dot(rotateMatrix(0,0,-49), points[i] - ref_arm1)
+    #     pointInArm = np.dot(rotM_arm1, points[i] - ref_arm1)
+    #     points[i] = np.dot(rotM_shoulder1, pointInArm + (ref_arm1 - ref_shoulder1))+ ref_shoulder1 - 0
+    #
+    # # l-elbow
+    # rotM_elbow1 = np.linalg.inv(getRotationMatrix(euler_rotates[7]))
+    # ref_elbow1 = np.asarray(ori_points[16])  # l-
+    # points = np.asarray(ori_points[17:18])
+    # num = len(points)
+    # for i in range(num):
+    #     points[i] = np.dot(rotM_elbow1, points[i]- ref_elbow1)+ ref_elbow1
 
-    # l-arm
-    rotM_arm1 = getRotationMatrix(euler_rotates[6])
-    ref_arm1 = np.asarray(ori_points[15])  # l-shoulder
-    points = np.asarray(ori_points[16:18])
+    # r-shoulder
+    rotM_shoulder2 = getRotationMatrix(euler_rotates[8])
+    ref_shoulder2 = np.asarray(ori_points[10])  # l-shoulder
+    # r-arm
+    rotM_arm2 = getRotationMatrix(euler_rotates[9])
+    ref_arm2 = np.asarray(ori_points[11])  # l-arm
+    # r-elbow
+    rotM_elbow2 = getRotationMatrix(euler_rotates[10])
+    ref_elbow2 = np.asarray(ori_points[12])  # l-
+
+    points = np.asarray(ori_points[13:14])
     num = len(points)
     for i in range(num):
-        points[i] = np.dot(rotM_arm1, points[i] - ref_arm1) + ref_arm1
+        pointInElbow = np.dot(rotateMatrix(0, 0, -138.5), points[i] - ref_elbow2)
+        tmp = np.dot(rotM_elbow2, pointInElbow)
+        tmp2 = tmp + ref_elbow2 - ref_arm2
+        tmp3 = np.dot(rotM_arm2, tmp2)
+        tmp4 = np.dot(rotateMatrix(0, 0, -132), tmp3) + (ref_arm2 - ref_shoulder2)
+        # tmp4 = tmp3 + (ref_arm2 - ref_shoulder2)
+        points[i] = np.dot(rotM_elbow2, tmp4) + ref_shoulder2
 
-    # l-elbow
-    rotM_elbow1 = getRotationMatrix(euler_rotates[7])
-    ref_elbow1 = np.asarray(ori_points[16])  # l-
-    points = np.asarray(ori_points[17:18])
+    points = np.asarray(ori_points[12:13])
     num = len(points)
     for i in range(num):
-        points[i] = np.dot(rotM_elbow1, points[i]- ref_elbow1)+ ref_elbow1
+        pointInArm = np.dot(rotateMatrix(0,0,-132), points[i] - ref_arm2)
+        tmp = np.dot(rotM_arm2, pointInArm)
+        tmp2 = np.dot(rotateMatrix(0, 0, 132), tmp) + (ref_arm2 - ref_shoulder2)
+        points[i] = np.dot(rotM_shoulder2, tmp2) + ref_shoulder2 - 0
 
-    # # r-shoulder
-    # rotM_shoulder2 = getRotationMatrix(euler_rotates[8])
-    # ref_shoulder2 = np.asarray(ori_points[10])  # l-shoulder
-    # points = np.asarray(ori_points[11:14])
-    # num = len(points)
-    # for i in range(num):
-    #     points[i] = np.dot(rotM_shoulder2, points[i] - ref_shoulder2) + ref_shoulder2
-    #
-    # # r-arm
-    # rotM_arm2 = getRotationMatrix(euler_rotates[9])
-    # ref_arm2 = np.asarray(ori_points[11])  # l-arm
-    # points = np.asarray(ori_points[12:14])
-    # num = len(points)
-    # for i in range(num):
-    #     points[i] = np.dot(rotM_arm2, points[i] - ref_arm2) + ref_arm2
-    #
-    # # r-elbow
-    # rotM_elbow2 = getRotationMatrix(euler_rotates[10])
-    # ref_elbow2 = np.asarray(ori_points[12])  # l-
-    # points = np.asarray(ori_points[13:14])
-    # num = len(points)
-    # for i in range(num):
-    #     points[i] = np.dot(rotM_elbow2, points[i] - ref_elbow2) + ref_elbow2
-
+    points = np.asarray(ori_points[11:12])
+    num = len(points)
+    for i in range(num):
+        pointInShoulder = points[i] - ref_shoulder2
+        points[i] = np.dot(rotM_shoulder2, pointInShoulder) + ref_shoulder2
 
 
     if vis:
-         Map_3Dpoints_2D(ori_points[14:18, :], vis)
+         Map_3Dpoints_2D(ori_points[10:14, :], vis)
     return ori_points
-
 
 def getSingleFrame3Dpoints(euler_rotates, ori_points,vis=False):
     '''
@@ -1044,22 +1182,27 @@ if __name__ == '__main__':
     # gen_dataset_posetransfer(kps_dir=r"D:\download_cache\PMXmodel\VIDEOkps",video_dir=r"D:\download_cache\PMXmodel\OUTPUTclips",
     #                      out_dir = r"D:\download_cache\anime_data2",interval=4)
     # get_PoseEstimation_txt(r"D:\download_cache\anime_data2\train")
-    # kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data\trainK", kps_a=r"D:\download_cache\anime_data\tmpK",
-    #                   output_dir = "D:/download_cache/anime_data/normK/",vis=["AnsieNight","Kogawa","naraka"])
-    # genPosetransferPair()
+    kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK_ori", kps_a=r"D:\download_cache\anime_data2\tmpK",
+                      output_dir = "D:/download_cache/anime_data2/normK_new/",vis=True)
+    # genPosetransferPair(input_dir=r"D:\download_cache\anime_data2\vis",
+    #                         output_file=r"D:\download_cache\anime_data2\anime-pairs-train.csv")
     # dance_61_10_Bakugou_8 dance_63_8_Kaito_9
     # around_modified("dance_10_2_sunshang_0")
-    ori_angles = getAngleFromVMD_v2(r"D:\download_cache\PMXmodel\VMDfile\dance_63_ka.vmd") #frames_num, type, 3    63
-    bones = getBoneFromCsv("D:\download_cache\PMXmodel\CSVfile\ka.csv")
-    joints = []
-    for idx, _joint in enumerate(bones[:-2]):
-        _, _x, _y, _z = _joint
-        joints.append([_x,_y,_z])
-    input_angles = ori_angles[0].tolist()
-    # getSingleFrame3Dpoints([[0.64,0.0,0.0],[0.0,-0.6,0.0],[6.4, 13.3, -6.7],[-28.5,0.6,-6.9],[-0.4,-34.1,0.6],[38.6,0.9,-1.4],
-    #                        [16.2,7.9,1.4],[-4.1,-48.8,19.5],[30.0,-88.4,-29.2],[17.3,0.5,17.0],[20.4,-17.5,-52.0],[13.9,25.4,3.2]
-    #                         ],bones,vis=True)
-    getSingle3DpointsFrom4elm(input_angles,bones,vis=True)
+
+    # # standard way! TODO
+    # ori_angles = getAngleFromVMD_v2(r"D:\download_cache\PMXmodel\VMDfile\dance_55_ka.vmd") #frames_num, type, 3    63
+    # bones = getBoneFromCsv("D:\download_cache\PMXmodel\CSVfile\ka.csv")
+    # joints = []
+    # for idx, _joint in enumerate(bones[:-2]):
+    #     _, _x, _y, _z = _joint
+    #     joints.append([_x,_y,_z])
+    # input_angles = ori_angles[0].tolist()
+    # # getSingleFrame3Dpoints([[0.64,0.0,0.0],[0.0,-0.6,0.0],[6.4, 13.3, -6.7],[-28.5,0.6,-6.9],[-0.4,-34.1,0.6],[38.6,0.9,-1.4],
+    # #                        [16.2,7.9,1.4],[-4.1,-48.8,19.5],[30.0,-88.4,-29.2],[17.3,0.5,17.0],[20.4,-17.5,-52.0],[13.9,25.4,3.2]
+    # #                         ],bones,vis=True)
+    # getSingle3DpointsFrom4elm(input_angles,bones,vis=True)
+
+
 
     # pprint(data[5000])
     print(time.time()-st)
