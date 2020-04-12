@@ -7,6 +7,8 @@ import pandas as pd
 import cv2
 import sys
 import numpy as np
+import shutil
+import random,time
 
 def generate_one_mone():
     one = torch.FloatTensor([1])
@@ -223,22 +225,22 @@ def mse(img1_path,img2_path):
     img2 = (img2 / 255.0 - 0.5) * 2.0
     return np.mean(np.square(img1 - img2))
 
-def main():
-    left_base = r"D:\download_cache\PMXmodel\VIDEOfile"
-    right_base = r"D:\download_cache\PMXmodel\OUTPUTclips"
-    right_vs = os.listdir(right_base)
-    right_vs.sort(key=lambda x:int(x[:-4]))
-    left_vs = os.listdir(left_base)
-    left_vs.sort(key=lambda x: int(x.split("_")[-1][:-4]))
-    for idx in range(len(left_vs)):
-        print(idx)
-        if idx<36:
-            continue
-        else:
-            left = left_vs[idx]
-            right = right_vs[idx]
-            out = "c_"+right[:-4]+".avi"
-            combineTwoVideo_height(os.path.join(left_base,left),os.path.join(right_base,right),os.path.join(right_base,out))
+# def main():
+#     left_base = r"D:\download_cache\PMXmodel\VIDEOfile"
+#     right_base = r"D:\download_cache\PMXmodel\OUTPUTclips"
+#     right_vs = os.listdir(right_base)
+#     right_vs.sort(key=lambda x:int(x[:-4]))
+#     left_vs = os.listdir(left_base)
+#     left_vs.sort(key=lambda x: int(x.split("_")[-1][:-4]))
+#     for idx in range(len(left_vs)):
+#         print(idx)
+#         if idx<36:
+#             continue
+#         else:
+#             left = left_vs[idx]
+#             right = right_vs[idx]
+#             out = "c_"+right[:-4]+".avi"
+#             combineTwoVideo_height(os.path.join(left_base,left),os.path.join(right_base,right),os.path.join(right_base,out))
 
 def get_file_encoding(file_path):
 
@@ -273,16 +275,67 @@ def extracted_frame(fr_n,video):
             cv2.imwrite(os.path.join(r"D:\download_cache\PMXmodel\real_shape","_".join(os.path.basename(video).split("_")[:-1])+".jpg"),frame)
         frame_num += 1
         flag, frame = v.read()
+def motion_check():
+    "dance_39_9_Teto_11"
+    "dance_39_9_11"
+    # Teto,KagamineRin    YYBHiganbanamiku   Vigna PaleEyes    Artemis   IA    KagamineRin  SatsukiKiryuin   AnsieNight   Bakugou,pmdfile1,Kaito,KizunaAi
+    # dance_24_1 偏移事件
+    # 2,lingmeng,madoka2019,MilkStraw,neru,JabamiYumeko,Joker,Kogawa,LEOTHELION,Miku,NazonoHeroine,Ochako,RyukoMatoi,TDALacyHaku,TDAPearlSouffleMiku,
+    #
+    file_dir = r"D:\download_cache\anime_data\vis"
+    out_dir = r"D:\download_cache\anime_data\motion_check"
+    import random
+    file_list = os.listdir(file_dir)
+    random.shuffle(file_list)
+    for file in file_list:
+        model_name = file.split("_")[3]
+        # delete_list = ["Teto", "KagamineRin","YYBHiganbanamiku","Vigna","PaleEyes","Artemis","IA","KagamineRin","SatsukiKiryuin","AnsieNight","Bakugou"
+        #                 , "pmdfile1", "Kaito", "KizunaAi"]
+        # if model_name in delete_list:
+        #     continue
+        # if dance_name == "dance_46_2" and end_name=="8":
+        if model_name in ["madoka2019", "RyukoMatoi", "neru","yousa"]:
+            dance_name = "_".join(file.split("_")[:3]) + "_" + file.split("_")[-1]
+            file_name = os.path.join(file_dir, file)
+            out_name = os.path.join(out_dir, dance_name)
+            # out_name = os.path.join(out_dir,file)
+            shutil.copy(file_name, out_name)
+
+    # np.random.shuffle(file_dir)
+
+def main():
+    chosen_model = ["madoka2019", "RyukoMatoi", "neru","yousa"]
+    motion_files = os.listdir(r"D:\download_cache\anime_data2\motion_check")
+    kps_dir = r"D:\download_cache\anime_data2\normK"
+    kps_out = r"D:\download_cache\anime_data2\normK_s"
+    img_dir = r"D:\download_cache\anime_data2\trainN"
+    img_out = r"D:\download_cache\anime_data2\train"
+
+    for motion in motion_files:
+        for model in chosen_model:
+            try:
+                filename = "_".join(motion.split("_")[:-1])+"_"+model+"_"+motion.split("_")[-1]
+                shutil.copy(os.path.join(kps_dir,filename+".npy"),os.path.join(kps_out,filename+".npy"))
+                shutil.copy(os.path.join(img_dir, filename), os.path.join(img_out,filename))
+            except:
+                continue
+
+
+
+
 
 
 if __name__=="__main__":
     # combineTwoVideo_width("D:\download_cache\PMXmodel\VIDEOclips\dance_10_8.avi","D:\download_cache\PMXmodel\OUTPUTclips\dance_10_8_GTGoku.avi","D:\download_cache\PMXmodel\compare.avi")
-    clips80 = [[190,262],[390,433],[530,590],[650,716],[777,830],[945,1050],[1085,1230],[1380,4135],[1510,1570],[1640,1730],[2141,2185],[4195,4320],[4860,4925]
-               ]
-    genClipCsvFile("dance_20",clips80)
+    # clips80 = [[190,262],[390,433],[530,590],[650,716],[777,830],[945,1050],[1085,1230],[1380,4135],[1510,1570],[1640,1730],[2141,2185],[4195,4320],[4860,4925]
+    #            ]
+    # genClipCsvFile("dance_20",clips80)
     # main()
     # ClipOriVideo()
 
+    main()
+
+    # extracted_frame(46,r"D:\download_cache\PMXmodel\VIDEOclips\dance_81_2.avi")
     # fps = 30
     # imgs_dir = r"D:\download_cache\PMXmodel\real_shape"
     # fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -290,9 +343,10 @@ if __name__=="__main__":
     # # no glob, need number-index increasing
     # imgs = os.listdir(imgs_dir)
     # for i in imgs:
-    #     imgname = os.path.join(imgs_dir, i)
-    #     frame = cv2.imread(imgname)
-    #     frame = cv2.resize(frame,(1920, 1080))
-    #     video_writer.write(frame)
+    #     if i.endswith(".jpg"):
+    #         imgname = os.path.join(imgs_dir, i)
+    #         frame = cv2.imread(imgname)
+    #         frame = cv2.resize(frame,(1920, 1080))
+    #         video_writer.write(frame)
     #
     # video_writer.release()

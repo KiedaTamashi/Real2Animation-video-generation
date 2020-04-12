@@ -84,5 +84,5 @@ def video2VMD_single(video_path,json_out_dir,model_csv,output_name):
 #     output_file = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.vmd"
 #     video2VMD_single(v_path,json_out_dir,model_csv,output_file)
 #
-# if __name__=="__main__":
-#     video2keypoints(r"D:\download_cache\PMXmodel\real_shape\test.avi",r"D:\download_cache\PMXmodel\real_shape\json_out")
+if __name__=="__main__":
+    video2keypoints(r"D:\download_cache\PMXmodel\real_shape\test.avi",r"D:\download_cache\PMXmodel\real_shape\json_out")

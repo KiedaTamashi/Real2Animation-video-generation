@@ -200,7 +200,7 @@ def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\
     for idx in range(img_nums):
         real_kps = np.load(os.path.join(kps_r, kpss[idx]))
         #TODO hard-code debug
-        if kpss[idx].split("_")[1] in ['24','25','26','30','31','39','55']:
+        if kpss[idx].split("_")[1] in ['24','25','26','30','31','39','55','63']:
             for item in real_kps:
                 item[0] = item[0]/1280*1920
                 item[1] = item[1]/720*1080
@@ -214,7 +214,7 @@ def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\
                 continue
             last_model = kpss[idx].split("_")[3] + ".csv"
             joints = []
-            for idx, _joint in enumerate(bones[:-2]):
+            for i, _joint in enumerate(bones[:-2]):
                 _, _x, _y, _z = _joint
                 joints.append(np.asarray([_x,_y,_z]))
             bones = Map_3Dpoints_2D(joints,vis=False)
@@ -233,7 +233,7 @@ def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\
         modified_kps = kps_Normalize(real_kps,anime_kps,ref=proportation,scale_level=0.9)
 
         img_size = (192,256)
-        img_ori = cv2.imread("D:\\download_cache\\anime_data2\\train_ori\\" + ".".join(kpss[idx].split(".")[:-1]))
+        img_ori = cv2.imread("D:\\download_cache\\anime_data\\train_ori\\" + ".".join(kpss[idx].split(".")[:-1]))
 
         center_point = modified_kps[1,:]
         center_x, center_y = center_point
@@ -249,7 +249,7 @@ def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\
 
         cropped = img_ori[0:1080, crop_l:crop_r, :]  # 裁剪坐标为[y0:y1, x0:x1]
         normalized = cv2.resize(cropped, img_size, interpolation=cv2.INTER_CUBIC)
-        cv2.imwrite("D:\\download_cache\\anime_data2\\trainN\\" + ".".join(kpss[idx].split(".")[:-1]), normalized)
+        cv2.imwrite("D:\\download_cache\\anime_data\\trainN\\" + ".".join(kpss[idx].split(".")[:-1]), normalized)
         for kps in modified_kps:
             kps[0] = kps[0] - crop_l
             kps[0] = kps[0] / 810 * img_size[0]
@@ -257,15 +257,14 @@ def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\
 
         np.save(output_dir + kpss[idx], modified_kps)
         if vis:
-            img_name = "D:\\download_cache\\anime_data2\\trainN\\" + ".".join(kpss[idx].split(".")[:-1])
+            img_name = "D:\\download_cache\\anime_data\\trainN\\" + ".".join(kpss[idx].split(".")[:-1])
 
             img = cv2.imread(img_name)
             for _joint in modified_kps:
                 _x, _y = _joint
                 cv2.circle(img, center=(int(_x), int(_y)), color=(255, 0, 0), radius=3, thickness=2)
             # cv2.imwrite("D:\\download_cache\\anime_data\\vis_img\\" + outname, img)
-            cv2.imwrite("D:\\download_cache\\anime_data2\\vis\\" + ".".join(kpss[idx].split(".")[:-1]), img)
-
+            cv2.imwrite("D:\\download_cache\\anime_data\\vis\\" + ".".join(kpss[idx].split(".")[:-1]), img)
 
 def kps_Normalize(real_kps,anime_kps,ref=None,scale_level=0.8):
     # real and anime kps should be (n,2) numpy array
@@ -814,7 +813,7 @@ def getBoneFromCsv(bone_csv_file):
 
 def getRealBone(filedir):
     out = dict()
-    v_names = ['24','25','26','30','31','39','42','44','46','49','55']
+    v_names = ['10','24','25','26','30','31','39','42','44','46','49','55','56','58','61','63','64','65','79','80','81']
     for i,file in enumerate(os.listdir(filedir)):
         tmp = []
         pose = load_json(os.path.join(filedir,file))['people'][0]['pose_keypoints_2d']
@@ -1182,10 +1181,13 @@ if __name__ == '__main__':
     # gen_dataset_posetransfer(kps_dir=r"D:\download_cache\PMXmodel\VIDEOkps",video_dir=r"D:\download_cache\PMXmodel\OUTPUTclips",
     #                      out_dir = r"D:\download_cache\anime_data2",interval=4)
     # get_PoseEstimation_txt(r"D:\download_cache\anime_data2\train")
-    kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK_ori", kps_a=r"D:\download_cache\anime_data2\tmpK",
-                      output_dir = "D:/download_cache/anime_data2/normK_new/",vis=True)
-    # genPosetransferPair(input_dir=r"D:\download_cache\anime_data2\vis",
-    #                         output_file=r"D:\download_cache\anime_data2\anime-pairs-train.csv")
+
+    # kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data\trainK", kps_a=r"D:\download_cache\anime_data\tmpK",
+    #                   output_dir = "D:/download_cache/anime_data/normK/",vis=True)
+
+
+    genPosetransferPair(input_dir=r"D:\download_cache\anime_data\train",
+                            output_file=r"D:\download_cache\anime_data\anime-pairs-train.csv")
     # dance_61_10_Bakugou_8 dance_63_8_Kaito_9
     # around_modified("dance_10_2_sunshang_0")
 
