@@ -7,7 +7,7 @@ import time,os
 import torch
 
 from datasets.lip import LipTestDataset
-from datasets.anime import AnimeTestDataset
+from datasets.anime import AnimeTestDataset,SingleAnimeDataset
 from models.single_person_pose_with_mobilenet import SinglePersonPoseEstimationWithMobileNet
 from modules.calc_pckh import calc_pckh
 from modules.load_state import load_state
@@ -203,8 +203,7 @@ def evaluate(dataset, results_folder, net, multiscale=False, visualize=False, sa
 
     res_file.close()
 
-
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--experiment_name', type=str, default='test',
                         help='name of output file with detected keypoints')
@@ -224,8 +223,7 @@ if __name__ == '__main__':
     #                     help='number of key points')
     args = parser.parse_args()
 
-
-    net = SinglePersonPoseEstimationWithMobileNet(num_refinement_stages=5,num_heatmaps=args.num_kps+1)
+    net = SinglePersonPoseEstimationWithMobileNet(num_refinement_stages=5, num_heatmaps=args.num_kps + 1)
     checkpoint = torch.load(args.checkpoint_path)
     load_state(net, checkpoint)
     data_flag = "real" if args.dataset_folder.split("/")[-1] == "data_lip" else "anime"
@@ -236,11 +234,76 @@ if __name__ == '__main__':
         os.makedirs(results_folder)
     ori_dataFolder = "D:\download_cache\VAEmodel\OriFrame"
     map_dataFolder = r"D:\download_cache\anime_data2\train"
-    if data_flag=="real":
+    if data_flag == "real":
         dataset = LipTestDataset(ori_dataFolder)
     else:
-        dataset = AnimeTestDataset(map_dataFolder) #TODO I have modified the datasets
+        dataset = AnimeTestDataset(map_dataFolder)  # TODO I have modified the datasets
 
     # TODO we need shadow like image.
-    evaluate(dataset, results_folder, net, args.multiscale, args.visualize,args.save_maps,num_kps=args.num_kps,
-             get_feature=args.get_feature,dataset_mode=args.dataset_mode)
+    evaluate(dataset, results_folder, net, args.multiscale, args.visualize, args.save_maps, num_kps=args.num_kps,
+             get_feature=args.get_feature, dataset_mode=args.dataset_mode)
+
+def genSingleImg(dataFolder = r"D:\work\pycharmproject\Real2Animation-video-generation\demo2\reference"):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--experiment_name', type=str, default='test',
+                        help='name of output file with detected keypoints')
+    parser.add_argument('--multiscale', action='store_true', help='average inference results over multiple scales')
+    parser.add_argument('--visualize', type=bool, default=False, help='show keypoints')
+    parser.add_argument('--save_maps', action='store_true', help='show keypoints')
+    parser.add_argument('--checkpoint-path', type=str, default="D:/work/pycharmproject/Real2Animation-video-generation/pose_estimate/gccpm-look-into/"
+                                                               "checkpoints/checkpoint_anime_47.pth", help='path to the checkpoint')
+    parser.add_argument('--dataset_folder', type=str, default="./data_anime", help='path to dataset folder')
+    parser.add_argument('--num_kps', type=int, default=21,  # need change 16 for real, 21 for anime
+                        help='number of key points')
+    args = parser.parse_args()
+
+    net = SinglePersonPoseEstimationWithMobileNet(num_refinement_stages=5, num_heatmaps=args.num_kps + 1)
+    checkpoint = torch.load(args.checkpoint_path)
+    load_state(net, checkpoint)
+
+    results_folder = 'test_results/{}{}_test'.format(args.experiment_name, "_final")
+    if not os.path.exists(results_folder):
+        os.makedirs(results_folder)
+    dataset = SingleAnimeDataset(dataFolder)  # TODO I have modified the datasets
+
+    # TODO we need shadow like image.
+
+    tmp_kps_dir = os.path.join(os.path.dirname(dataFolder),"tmpK")
+    net = net.cuda().eval()
+    base_height = 256
+    scales = [1]
+    stride = 8
+    output_name = os.path.join(results_folder, "kps_results.csv")
+    res_file = open(output_name, 'w')
+
+    pose_dir = os.path.join(dataFolder, "pose_dataset")
+    if not os.path.exists(pose_dir):
+        os.mkdir(pose_dir)
+
+    for sample_id in range(len(dataset)):
+        sample = dataset[sample_id]
+        file_name = sample['file_name']
+        img = sample['image']
+        avg_heatmaps = infer(net, img, scales, base_height, stride, num_kps=args.num_kps)
+
+        all_keypoints = []
+        for kpt_idx in range(args.num_kps):
+            all_keypoints.append(extract_keypoints(avg_heatmaps[:, :, kpt_idx]))
+
+        for id in range(len(all_keypoints)):
+            keypoint = all_keypoints[id]
+            if keypoint[0] != -1:
+                # if colors[id] == (255, 0, 0):
+                #     cv2.circle(img, (int(keypoint[0]), int(keypoint[1])),
+                #                radius + 2, (255, 0, 0), -1)
+                # else:
+                cv2.circle(img, (int(keypoint[0]), int(keypoint[1])),
+                           10, (255,255,255), -1)
+        img_name = os.path.join(pose_dir, file_name)
+        cv2.imwrite(img_name, img)
+
+        np.save(os.path.join(tmp_kps_dir,file_name+'.npy'),np.array(all_keypoints))
+        np.save(os.path.join(tmp_kps_dir, "animeImage.jpg.npy"), np.array(all_keypoints))
+
+if __name__ == '__main__':
+    genSingleImg()

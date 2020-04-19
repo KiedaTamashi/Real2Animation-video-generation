@@ -130,3 +130,21 @@ class AnimeTestDataset(Dataset):
 
     def __len__(self):
         return len(self._names)
+
+class SingleAnimeDataset(Dataset):
+    def __init__(self, dataset_folder):
+        super().__init__()
+        self._dataset_folder = dataset_folder
+        self._names = ["Anime_Image.jpg"]
+
+    def __getitem__(self, id):
+        name = self._names[id]
+        img = cv2.imread(os.path.join(self._dataset_folder, name))
+        sample = {
+            'image': img,
+            'file_name': name
+        }
+        return sample
+
+    def __len__(self):
+        return len(self._names)

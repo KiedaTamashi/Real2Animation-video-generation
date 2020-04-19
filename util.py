@@ -4,7 +4,7 @@ import os
 from logging import handlers
 # from moviepy.editor import *
 import pandas as pd
-import cv2
+import cv2,json
 import sys
 import numpy as np
 import shutil
@@ -266,15 +266,162 @@ def get_file_encoding(file_path):
 
     raise Exception("unknown encoding!")
 
+def video2frames(video_path,out_dir):
+    video_base_name = os.path.basename(video_path)[:-4]
+    v = cv2.VideoCapture(video_path)
+    flag, frame = v.read()
+    frame_num = 0
+    while flag:
+        cv2.imwrite(os.path.join(out_dir,video_base_name+"_"+str(frame_num)+".jpg"),frame)
+        frame_num += 1
+        flag, frame = v.read()
+
+def json2npy(video_name,json_dir,npy_dir):
+    json_files = os.listdir(json_dir)
+    json_files.sort(key=lambda x:int(x.split("_")[2]))
+    cnt = 0
+    for json_file in json_files:
+        with open(os.path.join(json_dir,json_file), encoding="utf-8") as f:
+            content = json.load(f)['people'][0]['pose_keypoints_2d']
+        tmp = []
+        for idx in range(0, len(content)-6, 3):
+            x, y, _ = content[idx], content[idx + 1], content[idx + 2]
+            tmp.append([x, y])
+        np.save(os.path.join(npy_dir,video_name+"_"+str(cnt)+".npy"),np.asarray(tmp))
+        cnt+=1
+
+def prepareForPoseTransfer(test_dir,testK_dir,refernce_image):
+    name_A = os.path.basename(refernce_image)
+    shutil.copy(refernce_image,os.path.join(test_dir,name_A))
+    from data_prepare.generate_pose_map_anime import compute_pose_single
+    # compute_pose_single(os.path.join(test_dir[:-4]+"tmpK",name_A+".npy"),testK_dir)
+    shutil.copy(r"D:\work\pycharmproject\Real2Animation-video-generation\demo\testK\animeImage.jpg.npy",os.path.join(testK_dir,name_A+".npy"))
+    files = os.listdir(test_dir)[1:]
+    files.sort(key= lambda x:int(x.split("_")[-1][:-4]))
+    tmp = []
+    for file in files:
+        tmp.append([name_A,file])
+    df = pd.DataFrame(tmp,columns=["from","to"])
+    df.to_csv(os.path.join(os.path.dirname(test_dir),"anime-pairs-test.csv"),index=None)
+
+
+
+def kps_Normalize_single(img_r,img_r_new, kps_r, kps_a,output_dir,reference_dir,vis=None,real_bone_num=None,video_size=(1280,720)):
+    # kps_r = r"D:\download_cache\anime_data2\trainK", kps_a = r"D:\download_cache\anime_data2\tmpK",
+    # output_dir = "D:/download_cache/anime_data2/normK/", vis = None, real_bone = None
+
+    # default to "D:\\download_cache\\anime_data\\vis_img\\"
+    # img_r_new = "\\".join(img_r.split("\\")[:-1])+"\\testN"
+    kpss = os.listdir(kps_r)
+    kpss.sort(key=lambda x:int(x.split("_")[2][:-4]))
+    img_nums = len(kpss)
+    # max_vis = vis_num
+    if real_bone_num is None:
+        r_bone = np.load(os.path.join(kps_r,kpss[0]))
+    else:
+        r_bone = np.load(os.path.join(kps_r,kpss[real_bone_num]))
+    bones =None
+    for idx in range(img_nums):
+        real_kps = np.load(os.path.join(kps_r, kpss[idx]))
+        #TODO hard-code debug
+        for item in real_kps:
+            item[0] = item[0]/video_size[0]*1920
+            item[1] = item[1]/video_size[1]*1080
+
+        anime_kps = np.load(kps_a)
+        # 0-center 1-groove 2-r_leg_IK 3-l_leg_IK 4-upperbody 5-upperbody2 6-neck 7-head 8-r_eye 9-l_eye 10-r_shoulder
+        # 11-arm 12-r_elbow 13-r_hand 14-l_shoulder 15-l_arm 16-l_elbow 17-l_hand 18-lowerbody 19-r_leg 20-r_knee 21-r_ankle 22-l_leg
+        # 23-l_knee 24-l_ankle   (23,2)
+        # TODO bad bone now. #####  not connect to anime pose estimation now ########
+        from data_prepare.genWarpDataset import getBoneFromCsv, Map_3Dpoints_2D,eucliDist,kps_Normalize
+        bones = getBoneFromCsv(os.path.join("D:\download_cache\PMXmodel\CSVfile", "RyukoMatoi.csv"))
+        joints = []
+        for i, _joint in enumerate(bones[:-2]):
+            _, _x, _y, _z = _joint
+            joints.append(np.asarray([_x, _y, _z]))
+        bones = Map_3Dpoints_2D(joints, vis=False)
+        anime_length = [eucliDist(bones[19],bones[21])*0.65,eucliDist(bones[11],bones[13])*0.85,eucliDist((bones[19]+bones[22])/2.0,bones[7])*0.8,eucliDist(bones[11],bones[15])*0.88]
+        # TODO bad bone now. #####  not connect to anime pose estimation now ########
+
+        real_length = [max(eucliDist(r_bone[8],r_bone[9])+eucliDist(r_bone[9],r_bone[10]),eucliDist(r_bone[11],r_bone[12])+eucliDist(r_bone[12],r_bone[13])),
+                       max(eucliDist(r_bone[2], r_bone[3]) + eucliDist(r_bone[3], r_bone[4]), eucliDist(r_bone[5], r_bone[6]) + eucliDist(r_bone[6], r_bone[7])),
+                       eucliDist((r_bone[8]+r_bone[9])/2.0, r_bone[1]),
+                       eucliDist(r_bone[2], r_bone[5])]
+        proportation = []
+        for x,y in zip(anime_length,real_length):
+            proportation.append(x/y)
+        modified_kps = kps_Normalize(real_kps,anime_kps,ref=proportation,scale_level=0.9,special_test=True)
+
+        img_size = (192,256)
+        img_ori = cv2.imread(os.path.join(img_r,kpss[idx][:-4]+".jpg"))
+        img_ori = cv2.resize(img_ori, (1920, 1080), interpolation=cv2.INTER_CUBIC)
+
+        center_point = modified_kps[1,:]
+        center_x, center_y = center_point
+        if int(center_x) - 405 < 0:
+            crop_l = 0
+            crop_r = 810
+        elif int(center_x) + 405 > 1920:
+            crop_l = 1920-810
+            crop_r = 1920
+        else:
+            crop_l = int(center_x) - 405
+            crop_r = int(center_x) + 405
+        cropped = img_ori[0:1080,crop_l:crop_r,:]  # 裁剪坐标为[y0:y1, x0:x1]
+        normalized = cv2.resize(cropped, img_size, interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite(os.path.join(img_r_new,kpss[idx][:-4]+".jpg"), normalized)
+
+        center_point = modified_kps[1, :]
+        center_x, center_y = center_point
+        if int(center_x) - 405 < 0:
+            crop_l = 0
+            crop_r = 810
+        elif int(center_x) + 405 > 1920:
+            crop_l = 1920 - 810
+            crop_r = 1920
+        else:
+            crop_l = int(center_x) - 405
+            crop_r = int(center_x) + 405
+
+        for kps in modified_kps:
+            kps[0] = kps[0] - crop_l
+            kps[0] = kps[0] / 810 * img_size[0]
+            kps[1] = kps[1] / 1080 * img_size[1]
+
+        np.save(os.path.join(output_dir,kpss[idx][:-4]+".jpg"+".npy"), modified_kps)
+        imgA = cv2.imread(os.path.join(reference_dir,"Anime_Image.jpg")) # TODO hard code.
+        imgA_cropped = imgA[0:1080, crop_l:crop_r,:]
+        normalizedA = cv2.resize(imgA_cropped, img_size, interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite(os.path.join(reference_dir, "animeImage.jpg"), normalizedA)
+
+
+        if vis:
+            for _joint in modified_kps:
+                _x, _y = _joint
+                _x, _y = int(_x),int(_y)
+                cv2.circle(normalizedA, center=(int(_x), int(_y)), color=(255, 0, 0), radius=3, thickness=2)
+            line_list = [[0,1],[1,2],[2,3],[3,4],[1,5],[5,6],[6,7],[1,8],[1,11],[8,9],[9,10],[11,12],[12,13],[0,14],[0,15]]
+            for lines in line_list:
+                cv2.line(normalizedA,(int(modified_kps[lines[0]][0]),int(modified_kps[lines[0]][1])),(int(modified_kps[lines[1]][0]),int(modified_kps[lines[1]][1]))
+                         ,color=(255,0,0),thickness=4)
+            # cv2.imwrite("D:\\download_cache\\anime_data\\vis_img\\" + outname, img)
+            cv2.imwrite(os.path.join("\\".join(img_r.split("\\")[:-1])+"\\vis",kpss[idx][:-4]+".jpg"), normalizedA)
+            print(os.path.join("\\".join(img_r.split("\\")[:-1])+"\\vis",kpss[idx][:-4]+".jpg"))
+
+
 def extracted_frame(fr_n,video):
+    # out_path = os.path.join(r"D:\download_cache\PMXmodel\real_shape","_".join(os.path.basename(video).split("_")[:-1])+".jpg")
+    out_path = r"D:\work\OpenMMD1.0\examples\json_out_3d2\test.jpg"
     v = cv2.VideoCapture(video)
     flag, frame = v.read()
     frame_num = 0
     while flag:
         if frame_num == fr_n:
-            cv2.imwrite(os.path.join(r"D:\download_cache\PMXmodel\real_shape","_".join(os.path.basename(video).split("_")[:-1])+".jpg"),frame)
+            cv2.imwrite(out_path,frame)
+            break
         frame_num += 1
         flag, frame = v.read()
+
 def motion_check():
     "dance_39_9_Teto_11"
     "dance_39_9_11"
@@ -303,13 +450,14 @@ def motion_check():
 
     # np.random.shuffle(file_dir)
 
-def main():
-    chosen_model = ["madoka2019", "RyukoMatoi", "neru","yousa"]
-    motion_files = os.listdir(r"D:\download_cache\anime_data2\motion_check")
-    kps_dir = r"D:\download_cache\anime_data2\normK"
-    kps_out = r"D:\download_cache\anime_data2\normK_s"
-    img_dir = r"D:\download_cache\anime_data2\trainN"
-    img_out = r"D:\download_cache\anime_data2\train"
+def getDatasetUsingClean():
+    chosen_model = ["madoka2019", "RyukoMatoi", "neru","yousa","lingmeng","2","MilkStraw","Joker","Miku","MilkStraw","NazonoHeroine",
+                    "Ochako","TDALacyHaku","LEOTHELION"] #14
+    motion_files = os.listdir(r"D:\download_cache\anime_data\motion_check")
+    kps_dir = r"D:\download_cache\anime_data\normK"
+    kps_out = r"D:\download_cache\anime_data\normK_s"
+    img_dir = r"D:\download_cache\anime_data\trainN"
+    img_out = r"D:\download_cache\anime_data\train"
 
     for motion in motion_files:
         for model in chosen_model:
@@ -321,8 +469,16 @@ def main():
                 continue
 
 
-
-
+def genVideoFromPoseTransfer(frame_dir,img_size=(192,256)):
+    frames = os.listdir(frame_dir)
+    width,height = img_size[0],img_size[1]
+    frames.sort(key= lambda x:int(x.split("_")[-2][:-4]))
+    videoWrite = cv2.VideoWriter(os.path.join(os.path.dirname(frame_dir),'test.mp4'), -1, 15, (width * 3, height))  # 写入对象：1.fileName  2.-1：表示选择合适的编码器  3.视频的帧率  4.视频的size
+    for idx,frame in enumerate(frames):
+        img = cv2.imread(os.path.join(frame_dir,frame))
+        img_used = img[:, width*2:, :]
+        videoWrite.write(img_used)  # 写入方法  1.编码之前的图片数据
+        print(idx)
 
 
 if __name__=="__main__":
@@ -332,10 +488,9 @@ if __name__=="__main__":
     # genClipCsvFile("dance_20",clips80)
     # main()
     # ClipOriVideo()
+    # extracted_frame(137,r"D:\work\OpenMMD1.0\examples\json_out_3d2\sample.mkv")
+    getDatasetUsingClean()
 
-    main()
-
-    # extracted_frame(46,r"D:\download_cache\PMXmodel\VIDEOclips\dance_81_2.avi")
     # fps = 30
     # imgs_dir = r"D:\download_cache\PMXmodel\real_shape"
     # fourcc = cv2.VideoWriter_fourcc(*'MJPG')

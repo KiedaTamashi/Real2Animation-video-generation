@@ -12,7 +12,7 @@ import shutil
 
 base_dir = r"D:/work/OpenMMD1.0"
 # step 1 video2keypoints - openpose
-def video2keypoints(video_path,json_out_dir,number_people=1):
+def video2keypoints(video_path,json_out_dir,number_people=1,display=0):
     '''
     :param video_path: e.g. examples/test.avi
     :param json_out_dir: examples/json_out
@@ -21,7 +21,7 @@ def video2keypoints(video_path,json_out_dir,number_people=1):
     '''
     os.chdir(base_dir)
     #--display 0
-    command = f"D:/work/OpenMMD1.0/bin/OpenPoseDemo.exe --video {video_path} --write_json {json_out_dir} --number_people_max {number_people} --display 0"
+    command = f"D:/work/OpenMMD1.0/bin/OpenPoseDemo.exe --video {video_path} --write_json {json_out_dir} --number_people_max {number_people} --display {display}"
     print(os.system(command)) #0=success
 
 # step 2 /3d-pose-baseline-vmd. kps2 3D
@@ -77,12 +77,30 @@ def video2VMD_single(video_path,json_out_dir,model_csv,output_name):
     video2depth(video_path,json3d_folder)
     json3DtoVMD(json3d_folder,model_csv,output_name)
 
-# def main():
-#     v_path = r"D:/work/OpenMMD1.0/examples/pose_test.mp4"
-#     json_out_dir = r"D:\work\OpenMMD1.0\examples\json_out"
-#     model_csv = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.csv"
-#     output_file = r"D:\work\OpenMMD1.0\examples\SourClassicMiku\SourClassicMiku.vmd"
-#     video2VMD_single(v_path,json_out_dir,model_csv,output_file)
-#
+def main():
+    v_path = r"D:/work/OpenMMD1.0/examples/pose_test.mp4"
+    json_out_dir = r"D:\work\OpenMMD1.0\examples\json_out"
+    model_csv = r"D:\download_cache\PMXmodel\CSVfile\yousa.csv"
+    output_file = r"D:\work\OpenMMD1.0\examples\pose_test.vmd"
+    json3d_folder = json_out_dir + "_3d"
+    # video2VMD_single(v_path,json_out_dir,model_csv,output_file)
+    # smooth the kps. Using window size ~= 1/2*frame_rate
+    import cv2
+    from data_prepare.smooth_pose import smooth_json_pose
+    cap = cv2.VideoCapture(v_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    wid_size = int(fps / 2)
+    if wid_size > 21:
+        wid_size = 21
+    else:
+        wid_size = wid_size - 1 if (wid_size & 1) == 0 else wid_size
+    smooth_json_pose(json_out_dir, window_length=wid_size, polyorder=3, threshold=0.15)
+
+    kpsTo3D(json_out_dir)
+    video2depth(v_path, json3d_folder)
+    cnt = 0
+    json3DtoVMD(json3d_folder, model_csv, output_file)
+
 if __name__=="__main__":
-    video2keypoints(r"D:\download_cache\PMXmodel\real_shape\test.avi",r"D:\download_cache\PMXmodel\real_shape\json_out")
+    # main()
+    video2keypoints(r"D:\work\OpenMMD1.0\examples\json_out_3d2\sample.mkv",r"D:\work\OpenMMD1.0\examples\json_out_3d2\json_out")

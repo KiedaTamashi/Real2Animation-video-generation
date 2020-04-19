@@ -185,7 +185,7 @@ def eucliDist(A, B):
     return np.sqrt(sum(np.power((A - B), 2)))
 
 def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\download_cache\anime_data2\tmpK",
-                  output_dir = "D:/download_cache/anime_data2/normK/",vis=None):
+                  output_dir = "D:/download_cache/anime_data2/normK/",vis=None,real_bone=None):
     # quite bad: Teto naraka Vigna Bakugou_20
     # dance 49
     #
@@ -194,7 +194,10 @@ def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\
     kpss = os.listdir(kps_r)
     img_nums = len(kpss)
     # max_vis = vis_num
-    r_bones = getRealBone("D:/download_cache/PMXmodel/real_shape/" + kps_r.split("\\")[-2])
+    if real_bone is None:
+        r_bones = getRealBone("D:/download_cache/PMXmodel/real_shape/" + kps_r.split("\\")[-2])
+    else:
+        r_bones = real_bone
     bones =None
     last_model =None
     for idx in range(img_nums):
@@ -266,7 +269,7 @@ def kps_Normalize_dir(kps_r=r"D:\download_cache\anime_data2\trainK", kps_a=r"D:\
             # cv2.imwrite("D:\\download_cache\\anime_data\\vis_img\\" + outname, img)
             cv2.imwrite("D:\\download_cache\\anime_data\\vis\\" + ".".join(kpss[idx].split(".")[:-1]), img)
 
-def kps_Normalize(real_kps,anime_kps,ref=None,scale_level=0.8):
+def kps_Normalize(real_kps,anime_kps,ref=None,scale_level=0.8,special_test=False):
     # real and anime kps should be (n,2) numpy array
     _, _, upper_body, _ = ref #leg, arm, upper body, shoulder
     for i in ref:
@@ -289,7 +292,7 @@ def kps_Normalize(real_kps,anime_kps,ref=None,scale_level=0.8):
     offset = neck_a-neck_r
     center = neck_a
 
-    theta_a = math.atan((head_a[1]-neck_a[1]+0.001)/(head_a[0]-neck_a[0]+0.001))
+    theta_a = math.atan((head_a[1] - neck_a[1]+0.001)/(head_a[0]-neck_a[0]+0.001))
     theta_r = math.atan((head_r[1] - neck_r[1]+0.001) / (head_r[0] - neck_r[0]+0.001))
     theta = theta_a - theta_r
     if abs(theta)>1.7:
@@ -419,18 +422,18 @@ def align(real_kps,anime_kps,visualization=False):
 def genPosetransferPair(input_dir = r"D:\download_cache\anime_data\train",
                         output_file = r"D:\download_cache\anime_data\anime-pairs-train.csv"):
     a = os.listdir(input_dir)
-    a.sort(key=lambda x: "_".join(x.split("_")[:-1]))
+    a.sort(key=lambda x: "_".join(x.split("_")[3]))
     last = a[0]
     tmp_list = []
     out_list = []
     for item in a:
-        if ("_".join(item.split("_")[:-1])) == ("_".join(last.split("_")[:-1])):
+        if ("_".join(item.split("_")[:2])) == ("_".join(last.split("_")[:2])):
             tmp_list.append(item)
         else:
             for x in tmp_list:
                 for y in tmp_list:
                     if x != y:
-                        out_list.append([x, y])
+                            out_list.append([x, y])
             tmp_list = []
             tmp_list.append(item)
         last = item
@@ -1188,6 +1191,7 @@ if __name__ == '__main__':
 
     genPosetransferPair(input_dir=r"D:\download_cache\anime_data\train",
                             output_file=r"D:\download_cache\anime_data\anime-pairs-train.csv")
+
     # dance_61_10_Bakugou_8 dance_63_8_Kaito_9
     # around_modified("dance_10_2_sunshang_0")
 

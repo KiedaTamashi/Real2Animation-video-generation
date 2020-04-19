@@ -1,21 +1,63 @@
 from components import *
-import util
-from pytorch_lightning import Trainer
-from model import skeletonVAE
-from settings import args
-import logging,os
-# Dataset iterator
-# TODO wait for rewrite, we may need a complex datasets, make it a class
-# hparams: in_channels,out_channels,latent_dim,hidden_dims,extract_layers,input_size,cond_size, kld_loss_weight,
-#                  cond_f_dims=128,block=BasicBlock
-def skeleton_learning():
-    skeleton_model = skeletonVAE(args)  # block = Basicblock
-    trainer = Trainer(max_epochs=args.epochs, gpus=0,logger=True,val_check_interval=5) #TODO if the args have None, then logger cannot work
-    trainer.fit(skeleton_model)
-    # view tensorboard logs
-    logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
-    logging.info('and going to http://localhost:6006 on your browser')
+from data_prepare.video2vmd import video2keypoints
+from data_prepare.smooth_pose import smooth_json_pose
+from data_prepare.generate_pose_map_anime import compute_pose
+from util import video2frames,json2npy,kps_Normalize_single,prepareForPoseTransfer,genVideoFromPoseTransfer
+from test import genSingleImg
+import util,os,numpy as np, pandas as pd
+# from pytorch_lightning import Trainer
+# from model import skeletonVAE
+# from settings import args
+# import logging,os
 
+def inference(v_r_x,I_a,operating_dir=r"D:\work\pycharmproject\Real2Animation-video-generation\demo"):
+    """
+    if we have the whole model, given a real human video and anime character, how we get the result anime video?
+    :param v_r_x:  path of real human video
+    :param I_a:  path of Image
+    :return:
+    """
+    kps_dir = os.path.join(operating_dir,"json_out")
+    kps_npy_dir = os.path.join(operating_dir,"testK_ori")
+    frame_dir = os.path.join(operating_dir,"test_ori")
+    frameN_dir = os.path.join(operating_dir, "test")
+    reference_dir = os.path.join(operating_dir, "reference") # put Anime_Image.jpg in it.
+    kps_a = os.path.join(operating_dir, "tmpK","animeImage.jpg.npy") #TODO
+    kps_norm_dir = os.path.join(operating_dir, "normK")
+    kps_final_dir = os.path.join(operating_dir, "testK")
+    for fdir in [kps_dir,kps_npy_dir,frame_dir,frameN_dir,kps_norm_dir,kps_final_dir]:
+        if not os.path.exists(fdir):
+            os.mkdir(fdir)
+    video2keypoints(v_r_x,kps_dir,display=1)
+    smooth_json_pose(kps_dir,window_length=11,polyorder=3)
+    json2npy(os.path.basename(v_r_x)[:-4],kps_dir,kps_npy_dir)
+    video2frames(v_r_x,frame_dir)
+    genSingleImg(reference_dir)
+
+    kps_Normalize_single(frame_dir,frameN_dir,kps_npy_dir,kps_a,kps_norm_dir,reference_dir,
+                         vis=True,real_bone_num=19)
+    compute_pose(kps_norm_dir,kps_final_dir)
+    prepareForPoseTransfer(frameN_dir,kps_final_dir,I_a)
+
+def postProcess():
+    genVideoFromPoseTransfer(r"D:\work\pycharmproject\Real2Animation-video-generation\demo2\results\anime_PATN\test_680\images")
+
+if __name__ == '__main__':
+    # # video = "D:\work\OpenMMD1.0\examples\pose_test.mp4"
+
+    # video = r"D:\work\pycharmproject\Real2Animation-video-generation\demo2\pose_test.mp4"
+    # I_a = r"D:\work\pycharmproject\Real2Animation-video-generation\demo2\reference\animeImage.jpg"
+    # opt_dir = r"D:\work\pycharmproject\Real2Animation-video-generation\demo2"
+    # inference(video,I_a,operating_dir=opt_dir)
+    postProcess()
+
+# def skeleton_learning():
+#     skeleton_model = skeletonVAE(args)  # block = Basicblock
+#     trainer = Trainer(max_epochs=args.epochs, gpus=0,logger=True,val_check_interval=5) #TODO if the args have None, then logger cannot work
+#     trainer.fit(skeleton_model)
+#     # view tensorboard logs
+#     logging.info(f'View tensorboard logs by running\ntensorboard --logdir {os.getcwd()}')
+#     logging.info('and going to http://localhost:6006 on your browser')
 '''
 def GAN_pipeline():
     def inf_train_gen():
