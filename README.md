@@ -1,1 +1,7 @@
-# Real2Animation-video-generation
+## Real2Animation-video-generation
+
+#Introduction
+
+The traditional pipeline of 2D anime production contains laborious work of drawing keyframes of the anime according to the ‘layout’, a sketch indicating what the anime character is doing in every frame. For amateur anime lovers who want to produce their own anime shorts, it takes great effort to master extra skills and techniques even if they have designed their own anime character in a painting. Fortunately, fast developing generative models like GAN\citep{GAN}, VAE\citep{VAE} make it possible to generate plausible images and videos automatically from the given condition. Besides, synthesis and pose transfer works are hot in recent years and provide lots of plug-in modules. These all contributes to generate anime shorts without any knowledge of anime production, which give birth to this work. 
+
+In this work, we propose an approach to generate an anime video sequence automatically given a real human video sequence and an image of anime character. Figure \ref{fig:overall} gives an example of our work. Left $Reference$ is the given anime character image. The bottom of right, which is marked as $Real Human$, is the given real human video sequence. The upper of right, which is marked as $Anime$, is the generated anime video sequence. The real human video performs the motion that we wish to transfer to target anime character image. We namely making target anime character do what the real human do in the video. We separately train different phases of transferring and combined them together as a video-to-video translation in testing, enabling practitioners to use it as reference and amateurs to make anime on their own easily.
