@@ -1,6 +1,6 @@
-## Real2Animation-video-generation
+### Real2Animation-video-generation
 
-#Introduction
+##Introduction
 
 The traditional pipeline of 2D anime production contains laborious work of drawing keyframes of the anime according to the ‘layout’, a sketch indicating what the anime character is doing in every frame. For amateur anime lovers who want to produce their own anime shorts, it takes great effort to master extra skills and techniques even if they have designed their own anime character in a painting. Fortunately, fast developing generative models like GAN\citep{GAN}, VAE\citep{VAE} make it possible to generate plausible images and videos automatically from the given condition. Besides, synthesis and pose transfer works are hot in recent years and provide lots of plug-in modules. These all contributes to generate anime shorts without any knowledge of anime production, which give birth to this work. 
 
